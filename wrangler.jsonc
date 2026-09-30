@@ -9,7 +9,7 @@
     "SCRIPTURESMART_AI_FALLBACK_MODEL": "",
     "APPWRITE_ENDPOINT": "https://nyc.cloud.appwrite.io/v1",
     "APPWRITE_PROJECT_ID": "6abacdae000fc71c85c8",
-    "ALLOWED_ORIGINS": "http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:5181",
+    "ALLOWED_ORIGINS": "http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:5181,https://jasonw79118.github.io",
   },
   "ratelimits": [
     {

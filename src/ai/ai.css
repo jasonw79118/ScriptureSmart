@@ -1,0 +1,112 @@
+.ai-assistant,
+.ai-status-card {
+  margin: 24px 0;
+  min-width: 0;
+}
+.ai-assistant fieldset {
+  border: 1px solid #d8ddd4;
+  padding: 16px;
+  border-radius: 8px;
+  min-width: 0;
+}
+.ai-assistant details,
+.ai-status-card details {
+  margin: 12px 0;
+}
+.ai-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ai-suggestions .button {
+  white-space: normal;
+  text-align: left;
+}
+.ai-context-preview {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 240px;
+  overflow: auto;
+  font-size: 12px;
+}
+.ai-result {
+  border-top: 2px solid var(--church-accent, #35553d);
+  padding-top: 20px;
+}
+.ai-chat {
+  display: grid;
+  gap: 18px;
+}
+.ai-chat-empty {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+.ai-chat-empty .button {
+  justify-content: flex-start;
+  min-height: 52px;
+  text-align: left;
+  white-space: normal;
+}
+.ai-chat-thread {
+  display: grid;
+  gap: 18px;
+}
+.ai-chat-turn {
+  display: grid;
+  gap: 10px;
+}
+.ai-chat-message {
+  max-width: min(100%, 780px);
+  padding: 14px 16px;
+  border: 1px solid #d8ddd4;
+  border-radius: 8px;
+  background: #fff;
+}
+.ai-chat-message.user {
+  justify-self: end;
+  background: #f4f7f1;
+}
+.ai-chat-message.assistant {
+  justify-self: start;
+}
+.ai-chat-message p {
+  margin: 8px 0 0;
+}
+.ai-chat-composer {
+  display: grid;
+  gap: 10px;
+  position: sticky;
+  bottom: 12px;
+  padding: 12px;
+  border: 1px solid #d8ddd4;
+  border-radius: 8px;
+  background: color-mix(in srgb, #ffffff 94%, var(--church-accent, #35553d));
+  box-shadow: 0 12px 28px rgb(38 46 35 / 10%);
+}
+.ai-assistant textarea {
+  width: 100%;
+  resize: vertical;
+}
+.ai-assistant .section-heading {
+  flex-wrap: wrap;
+}
+.ai-assistant .editor-toolbar {
+  flex-wrap: wrap;
+}
+.ai-assistant summary,
+.ai-status-card summary {
+  cursor: pointer;
+}
+@media (max-width: 720px) {
+  .ai-assistant {
+    padding: 18px;
+  }
+  .ai-assistant .button {
+    min-height: 44px;
+    white-space: normal;
+  }
+  .ai-chat-composer {
+    position: static;
+  }
+}

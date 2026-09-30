@@ -1,0 +1,37 @@
+{
+  "name": "scripturesmart",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --pretty false",
+    "test": "playwright test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test:domain": "node --test tests/*.test.mjs",
+    "dev:worker": "wrangler dev --ip 127.0.0.1 --port 8787",
+    "build:worker": "wrangler deploy --dry-run --outdir dist/worker"
+  },
+  "dependencies": {
+    "appwrite": "^28.1.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "node-appwrite": "^29.0.0",
+    "oxlint": "^1.81.0",
+    "prettier": "^3.9.9",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0",
+    "wrangler": "^4.143.0"
+  }
+}

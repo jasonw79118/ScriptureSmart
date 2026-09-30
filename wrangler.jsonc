@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "scripturesmart-ai",
+  "main": "server/ai/worker.ts",
+  "compatibility_date": "2026-09-01",
+  "ai": { "binding": "AI", "remote": true },
+  "vars": {
+    "SCRIPTURESMART_AI_MODEL": "@cf/google/gemma-4-26b-a4b-it",
+    "SCRIPTURESMART_AI_FALLBACK_MODEL": "",
+    "APPWRITE_ENDPOINT": "https://nyc.cloud.appwrite.io/v1",
+    "APPWRITE_PROJECT_ID": "6abacdae000fc71c85c8",
+    "ALLOWED_ORIGINS": "http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:5181",
+  },
+  "ratelimits": [
+    {
+      "name": "AI_USER_LIMIT",
+      "namespace_id": "7911801",
+      "simple": { "limit": 6, "period": 60 },
+    },
+    {
+      "name": "AI_GLOBAL_LIMIT",
+      "namespace_id": "7911802",
+      "simple": { "limit": 60, "period": 60 },
+    },
+  ],
+  "observability": { "enabled": false },
+}

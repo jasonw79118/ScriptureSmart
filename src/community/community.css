@@ -1,0 +1,408 @@
+﻿.church-nav-identity {
+  display: block;
+  padding: 0 12px 20px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.church-nav-identity small {
+  display: block;
+  font-size: 10px;
+}
+.community-mode {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 17px;
+  background: #edf2e6;
+  border-radius: 8px;
+  margin-bottom: 25px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.community-mode a {
+  margin-left: auto;
+  font-weight: 600;
+}
+.community-hero {
+  border: 1px solid #dfe6d7;
+  border-top: 4px solid #35553d;
+  background: #fff;
+  padding: 30px;
+  display: flex;
+  justify-content: space-between;
+  gap: 25px;
+  border-radius: 8px;
+}
+.community-hero h2 {
+  font-size: 32px;
+  margin: 16px 0 12px;
+}
+.community-hero > label {
+  min-width: 190px;
+  max-width: 260px;
+}
+.community-hero p {
+  max-width: 550px;
+}
+.group-facts {
+  display: flex;
+  gap: 25px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #6e7c65;
+}
+.church-switch {
+  max-width: 380px;
+  margin: 0 0 25px;
+}
+.group-directory-card {
+  text-align: left;
+  background: #f8faf4;
+  border: 1px solid #dfe6d7;
+  border-radius: 8px;
+  padding: 20px;
+}
+.group-directory-card small {
+  display: block;
+  margin-top: 10px;
+}
+.meeting-select {
+  min-width: 240px;
+}
+.rsvp-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.rsvp-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #dce3d4;
+  padding: 12px;
+  border-radius: 7px;
+  font-size: 12px;
+}
+.rsvp-options input {
+  width: auto;
+  margin: 0;
+}
+.rsvp-options .chosen {
+  background: #edf4e4;
+  border-color: #829d6c;
+}
+.attendance-totals {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+.attendance-totals strong {
+  font-size: 30px;
+  font-family: Georgia, serif;
+  font-weight: 400;
+}
+.attendance-totals small {
+  display: block;
+  font-size: 10px;
+  font-family: Arial, sans-serif;
+  line-height: 1.7;
+}
+.meal-plan,
+.gathering-kids {
+  margin-top: 25px;
+}
+.meal-plan .section-heading {
+  align-items: flex-start;
+}
+.meal-plan .section-heading h2 {
+  margin-top: 15px;
+}
+.dish-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px;
+}
+.dish-card {
+  padding: 20px;
+  border: 1px solid #e1e5dc;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+.dish-card h3,
+.dish-card p {
+  margin: 0;
+}
+.dish-card p {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.dish-card label {
+  width: 100%;
+  font-size: 11px;
+  margin-top: auto;
+}
+.dish-card .button {
+  width: 100%;
+  padding: 10px;
+}
+.dish-card.needs-cover {
+  background: #fff9ee;
+  border-color: #d8b479;
+}
+.dish-warning {
+  color: #905b23;
+}
+.dish-form {
+  display: flex;
+  gap: 15px;
+  align-items: end;
+  flex-wrap: wrap;
+  margin-top: 25px;
+  border-top: 1px solid #e2e6dc;
+  padding-top: 20px;
+}
+.dish-form > label {
+  flex: 1;
+  min-width: 170px;
+}
+.community-conversation {
+  max-width: 900px;
+}
+.community-conversation > .panel {
+  margin-bottom: 22px;
+}
+.invite-code {
+  overflow-wrap: anywhere;
+  font-family: monospace;
+}
+.food-tag {
+  display: inline-block;
+  font-size: 10px;
+  padding: 4px 7px;
+  border-radius: 4px;
+  background: #f5ede0;
+  color: #885d29;
+  margin: 3px;
+}
+.menu-suggestions {
+  margin: 25px 0;
+  border: 1px solid #dfe6d7;
+  border-radius: 8px;
+  padding: 22px;
+  background: #f8faf5;
+}
+.menu-suggestions h3 {
+  font-family: Georgia, serif;
+  font-size: 23px;
+}
+.suggestion-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 15px 0;
+  border-bottom: 1px solid #e2e7db;
+  align-items: center;
+}
+.suggestion-row p {
+  margin: 5px 0;
+  font-size: 12px;
+}
+.dietary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 25px;
+}
+.ingredient-status {
+  font-size: 10px;
+  color: #805f39;
+}
+.dietary-checks {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.dietary-checks .check {
+  font-size: 11px;
+  padding: 6px;
+}
+.food-note {
+  font-size: 12px;
+  color: #7a654b;
+  background: #faf4e9;
+  border-radius: 6px;
+  padding: 16px;
+  line-height: 1.7;
+}
+.dietary-card {
+  padding: 18px;
+  border: 1px solid #e2e6db;
+  border-radius: 6px;
+  margin: 10px 0;
+}
+.dietary-card p {
+  margin: 8px 0;
+  font-size: 12px;
+}
+.sidebar nav a {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.sidebar {
+  padding-top: 23px;
+}
+.sidebar .brand {
+  margin-bottom: 28px;
+}
+@media (max-width: 1100px) {
+  .dish-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 720px) {
+  .community-hero {
+    flex-direction: column;
+    padding: 23px;
+  }
+  .community-hero > label {
+    width: 100%;
+    max-width: none;
+  }
+  .group-facts {
+    gap: 12px;
+  }
+  .dish-grid,
+  .dietary-grid {
+    grid-template-columns: 1fr;
+  }
+  .suggestion-row {
+    align-items: flex-start;
+  }
+  .suggestion-row .button {
+    min-width: 75px;
+  }
+  .community-mode {
+    font-size: 11px;
+  }
+  .attendance-totals {
+    gap: 10px;
+  }
+  .meal-plan .section-heading {
+    flex-direction: column;
+  }
+  .rsvp-options label {
+    padding: 10px;
+  }
+  .meeting-select {
+    width: 100%;
+  }
+}
+.app-shell .primary {
+  background: var(--church-accent, #35553d);
+  border-color: var(--church-accent, #35553d);
+}
+.finder-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.5fr);
+  gap: 24px;
+  align-items: start;
+}
+.finder-layout .form-stack {
+  gap: 18px;
+}
+.group-match {
+  margin-bottom: 20px;
+  border-top: 3px solid var(--church-accent, #35553d);
+}
+.group-match h2 {
+  margin-top: 16px;
+}
+.match-reasons {
+  padding-left: 20px;
+  line-height: 1.8;
+}
+.leader-contact {
+  border-top: 1px solid var(--border, #deded6);
+  padding-top: 18px;
+  margin-top: 18px;
+}
+.permission-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+.access-panel {
+  margin-bottom: 24px;
+}
+.access-member {
+  padding: 20px 0;
+  border-top: 1px solid #deded6;
+  display: grid;
+  gap: 16px;
+}
+.access-member fieldset,
+.directory-editor fieldset {
+  border: 1px solid #deded6;
+  border-radius: 8px;
+  padding: 16px;
+}
+.church-result {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #deded6;
+  border-radius: 8px;
+}
+.church-result small {
+  display: block;
+  margin-top: 6px;
+}
+.subtle-box {
+  background: #f4f3ee;
+  padding: 18px;
+  border-radius: 8px;
+}
+@media (max-width: 800px) {
+  .finder-layout {
+    grid-template-columns: 1fr;
+  }
+  .group-match .editor-toolbar {
+    flex-wrap: wrap;
+  }
+}
+/* Redeemer's charcoal, white space, and bold headings; each church keeps its chosen accent. */
+[data-church-theme='redeemer'] .church-nav-identity {
+  border-bottom: 1px solid #dad7d1;
+  margin-bottom: 16px;
+}
+[data-church-theme='redeemer'] .church-nav-identity strong {
+  font-family: Georgia, serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+[data-church-theme='redeemer'] .community-hero {
+  background: #363636;
+  color: #fff;
+  border-color: #363636;
+  border-radius: 3px;
+}
+[data-church-theme='redeemer'] .community-hero h2 {
+  font-family: Arial, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+[data-church-theme='redeemer'] .community-hero p,
+[data-church-theme='redeemer'] .community-hero .group-facts {
+  color: #eeeae3;
+}
+[data-church-theme='redeemer'] .community-mode {
+  background: #eeece7;
+}
+[data-church-theme='redeemer'] .group-match {
+  border-radius: 3px;
+}

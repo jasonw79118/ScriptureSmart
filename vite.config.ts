@@ -3,6 +3,7 @@ import { defineConfig } from 'vite';
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/ScriptureSmart/',
   plugins: [react()],
   server: { proxy: { '/api/ai': { target: 'http://127.0.0.1:8787' } } },
 });

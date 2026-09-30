@@ -30,6 +30,7 @@ export function PassageWorkspace({
     comparisons.find((t) => t !== preferred) ?? 'KJV',
   );
   const [validation, setValidation] = useState('');
+  const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const tabs = [
     'Scripture',
     'Compare',
@@ -104,20 +105,24 @@ export function PassageWorkspace({
           'Create sermon ideas',
         ]}
         choices={
-          notes.some((n) => n.passage === passage)
+          selectedNoteIds.length
             ? [
                 {
-                  id: 'passage-notes',
-                  label: 'My saved notes for this passage',
+                  id: 'selected-notes',
+                  label: 'Selected saved notes',
                   context: {
                     userNotes: notes
-                      .filter((n) => n.passage === passage)
+                      .filter(
+                        (n) =>
+                          n.passage === passage &&
+                          selectedNoteIds.includes(n.id),
+                      )
                       .map((n) => ({
                         id: n.id,
                         text: n.text,
                         source: {
                           kind: 'USER NOTE' as const,
-                          title: 'Personal note',
+                          title: 'Selected saved note',
                           isVerified: false,
                         },
                       })),
@@ -126,12 +131,12 @@ export function PassageWorkspace({
               ]
             : []
         }
-        onInsert={(text) =>
+        onInsert={(text, question) =>
           saveNotes([
             {
               id: crypto.randomUUID(),
               passage,
-              text: '[AI SYNTHESIS]\n' + text,
+              text: `[AI SYNTHESIS]\nQuestion: ${question ?? 'Study chat'}\n\n${text}`,
               visibility: 'private',
               ownerId: 'local-user',
             },
@@ -288,9 +293,24 @@ export function PassageWorkspace({
                 <article className="note-card" key={n.id}>
                   <span className="muted">Private · This device</span>
                   <p className="preserve">{n.text}</p>
-                  <button className="text-button" onClick={() => send(n.text)}>
-                    Send to local Table →
-                  </button>
+                  <div className="editor-toolbar">
+                    <button
+                      className="text-button"
+                      onClick={() => send(n.text)}
+                    >
+                      Send to local Table
+                    </button>
+                    <button
+                      className="text-button"
+                      onClick={() => {
+                        setSelectedNoteIds([n.id]);
+                        setTab('Scripture');
+                        window.location.assign('#study');
+                      }}
+                    >
+                      Ask AI about this note
+                    </button>
+                  </div>
                 </article>
               ))}
           </>

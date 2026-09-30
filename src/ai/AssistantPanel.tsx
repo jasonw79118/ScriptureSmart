@@ -37,7 +37,7 @@ export function AssistantPanel({
   choices?: ContextChoice[];
   suggestions: string[];
   actionLabel?: string;
-  onInsert?: (text: string) => void;
+  onInsert?: (text: string, question?: string) => void;
   insertLabel?: string;
   onReplace?: (text: string) => void;
   onInsertGuide?: (sections: NonNullable<AIResponse['sections']>) => void;
@@ -82,7 +82,10 @@ export function AssistantPanel({
 
   function selectedContext() {
     const context: AIContext = { ...baseContext };
-    for (const choice of choices.filter((c) => selected.includes(c.id))) {
+    const activeChoices = chatMode
+      ? choices
+      : choices.filter((c) => selected.includes(c.id));
+    for (const choice of activeChoices) {
       Object.assign(context, choice.context);
     }
     return context;
@@ -207,6 +210,7 @@ export function AssistantPanel({
   const textToInsert = editedSections
     ? guideSections.map((k) => `${k}\n${editedSections[k]}`).join('\n\n')
     : edited;
+  const latestQuestion = conversation.at(-1)?.question;
   const composerValue = conversation.length ? followUp : prompt;
   const setComposerValue = conversation.length ? setFollowUp : setPrompt;
 
@@ -517,7 +521,7 @@ export function AssistantPanel({
                     className="button secondary"
                     disabled={!textToInsert.trim()}
                     onClick={() => {
-                      onInsert(textToInsert);
+                      onInsert(textToInsert, latestQuestion);
                       setNotice(
                         chatMode
                           ? 'Answer saved to your notes.'

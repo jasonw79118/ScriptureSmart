@@ -1,4 +1,4 @@
-import { AssistantPanel } from '../ai/AssistantPanel';
+import { AssistantPanel, type ContextChoice } from '../ai/AssistantPanel';
 import { useState } from 'react';
 import type { Note, TableItem } from '../domain/models';
 import { translations } from '../domain/providers';
@@ -30,7 +30,26 @@ export function PassageWorkspace({
     comparisons.find((t) => t !== preferred) ?? 'KJV',
   );
   const [validation, setValidation] = useState('');
-  const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
+  const noteChoices = (n: Note): ContextChoice[] => [
+    {
+      id: `note-${n.id}`,
+      label: 'This saved note',
+      context: {
+        userNotes: [
+          {
+            id: n.id,
+            text: n.text,
+            source: {
+              kind: 'USER NOTE' as const,
+              title: 'Selected saved note',
+              isVerified: false,
+            },
+          },
+        ],
+      },
+    },
+  ];
   const tabs = [
     'Scripture',
     'Compare',
@@ -104,33 +123,7 @@ export function PassageWorkspace({
           'Identify major interpretive questions',
           'Create sermon ideas',
         ]}
-        choices={
-          selectedNoteIds.length
-            ? [
-                {
-                  id: 'selected-notes',
-                  label: 'Selected saved notes',
-                  context: {
-                    userNotes: notes
-                      .filter(
-                        (n) =>
-                          n.passage === passage &&
-                          selectedNoteIds.includes(n.id),
-                      )
-                      .map((n) => ({
-                        id: n.id,
-                        text: n.text,
-                        source: {
-                          kind: 'USER NOTE' as const,
-                          title: 'Selected saved note',
-                          isVerified: false,
-                        },
-                      })),
-                  },
-                },
-              ]
-            : []
-        }
+        choices={[]}
         onInsert={(text, question) =>
           saveNotes([
             {
@@ -302,15 +295,46 @@ export function PassageWorkspace({
                     </button>
                     <button
                       className="text-button"
-                      onClick={() => {
-                        setSelectedNoteIds([n.id]);
-                        setTab('Scripture');
-                        window.location.assign('#study');
-                      }}
+                      onClick={() =>
+                        setActiveNoteId(activeNoteId === n.id ? null : n.id)
+                      }
                     >
-                      Ask AI about this note
+                      {activeNoteId === n.id
+                        ? 'Close note question'
+                        : 'Ask AI about this note'}
                     </button>
                   </div>
+                  {activeNoteId === n.id && (
+                    <AssistantPanel
+                      key={`note-ai-${n.id}`}
+                      allowScripture
+                      baseContext={{
+                        passageReference: passage,
+                        translationIds: [translation, comparison],
+                      }}
+                      choices={noteChoices(n)}
+                      suggestions={[
+                        'What should I ask next from this note?',
+                        'Help me refine this note.',
+                        'What Bible passages clarify this note?',
+                        'Turn this note into a study question.',
+                      ]}
+                      onInsert={(text, question) =>
+                        saveNotes([
+                          {
+                            id: crypto.randomUUID(),
+                            passage,
+                            text: `[AI SYNTHESIS]\nQuestion: ${
+                              question ?? 'Question about saved note'
+                            }\nBased on note: ${n.text}\n\n${text}`,
+                            visibility: 'private',
+                            ownerId: 'local-user',
+                          },
+                          ...notes,
+                        ])
+                      }
+                    />
+                  )}
                 </article>
               ))}
           </>

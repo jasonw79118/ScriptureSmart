@@ -212,7 +212,7 @@ test('worker proxies YouVersion passages only after Appwrite verification', asyn
     if (String(url).includes('/account')) return verified();
     assert.equal(
       url,
-      'https://api.youversion.com/v1/bibles/1/passages/JHN.3.16?format=text',
+      'https://api.youversion.com/v1/bibles/3034/passages/JHN.3.16?format=text',
     );
     assert.equal(options.headers['X-YVP-App-Key'], 'server-secret');
     return Response.json({
@@ -223,7 +223,7 @@ test('worker proxies YouVersion passages only after Appwrite verification', asyn
   });
   const response = await worker.fetch(
     new Request(
-      'https://worker.example.test/api/bible/passage?reference=John%203:16&translationId=KJV',
+      'https://worker.example.test/api/bible/passage?reference=John%203:16&translationId=BSB',
       {
         headers: {
           Origin: 'https://scripture.example.test',
@@ -236,7 +236,7 @@ test('worker proxies YouVersion passages only after Appwrite verification', asyn
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.equal(body.text, 'For God so loved the world.');
-  assert.equal(body.translationId, 'KJV');
+  assert.equal(body.translationId, 'BSB');
   assert.ok(!JSON.stringify(body).includes('server-secret'));
   assert.equal(calls.length, 2);
 });

@@ -29,7 +29,7 @@ export function PassageWorkspace({
   const [note, setNote] = useState('');
   const [translation, setTranslation] = useState(preferred);
   const [comparison, setComparison] = useState(
-    comparisons.find((t) => t !== preferred) ?? 'KJV',
+    comparisons.find((t) => t !== preferred) ?? 'ASV',
   );
   const [validation, setValidation] = useState('');
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);

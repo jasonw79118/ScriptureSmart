@@ -68,12 +68,14 @@ const bookUsfm: Record<string, string> = {
 };
 
 const youVersionBibleIds: Record<string, number> = {
-  KJV: 1,
-  ESV: 59,
-  NIV: 111,
-  NKJV: 114,
-  CSB: 1713,
+  ASV: 12,
   BSB: 3034,
+  CPDV: 42,
+  FBV: 1932,
+  LSV: 2660,
+  TCENT: 3427,
+  WEBUS: 206,
+  WMB: 1209,
 };
 
 export interface YouVersionPassage {

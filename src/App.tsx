@@ -150,8 +150,8 @@ function App() {
     'ss.settings.v1',
     {
       name: 'Friend',
-      translation: 'ESV',
-      comparisons: ['KJV'],
+      translation: 'BSB',
+      comparisons: ['ASV'],
       tradition: 'Not specified',
       statement: '',
       showOthers: true,

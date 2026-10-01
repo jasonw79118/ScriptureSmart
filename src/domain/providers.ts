@@ -1,16 +1,18 @@
 import type { BibleProvider, Translation, Source, User } from './models';
 
 export const translations: Translation[] = [
-  'ESV',
-  'CSB',
-  'NIV',
-  'KJV',
-  'NKJV',
-].map((id) => ({
-  id,
-  name: id,
-  providerIds: [],
-  requiresLicense: id !== 'KJV',
+  { id: 'BSB', name: 'Berean Standard Bible' },
+  { id: 'ASV', name: 'American Standard Version' },
+  { id: 'WEBUS', name: 'World English Bible, American English' },
+  { id: 'FBV', name: 'Free Bible Version' },
+  { id: 'LSV', name: 'Literal Standard Version' },
+  { id: 'WMB', name: 'World Messianic Bible' },
+  { id: 'CPDV', name: 'Catholic Public Domain Version' },
+  { id: 'TCENT', name: 'Text-Critical English New Testament' },
+].map((translation) => ({
+  ...translation,
+  providerIds: ['youversion'],
+  requiresLicense: false,
 }));
 export const bibleProviders: BibleProvider[] = [
   { id: 'youversion', name: 'YouVersion', capabilities: ['text'] },

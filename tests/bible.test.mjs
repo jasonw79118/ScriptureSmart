@@ -147,7 +147,7 @@ test('YouVersion passage retrieval converts references and keeps the app key ser
   const passage = await retrieveYouVersionPassage({
     apiKey: 'secret-app-key',
     reference: 'John 3:16',
-    translationId: 'KJV',
+    translationId: 'BSB',
     transport: async (url, init) => {
       seen = { url, init };
       return Response.json({
@@ -159,17 +159,17 @@ test('YouVersion passage retrieval converts references and keeps the app key ser
   });
   assert.equal(
     seen.url,
-    'https://api.youversion.com/v1/bibles/1/passages/JHN.3.16?format=text',
+    'https://api.youversion.com/v1/bibles/3034/passages/JHN.3.16?format=text',
   );
   assert.equal(seen.init.headers['X-YVP-App-Key'], 'secret-app-key');
   assert.equal(seen.init.redirect, 'manual');
   assert.equal(passage.text, 'For God so loved the world.');
-  assert.equal(passage.translationId, 'KJV');
+  assert.equal(passage.translationId, 'BSB');
   await assert.rejects(
     retrieveYouVersionPassage({
       apiKey: '',
       reference: 'John 3:16',
-      translationId: 'KJV',
+      translationId: 'BSB',
     }),
   );
   await assert.rejects(

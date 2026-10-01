@@ -114,12 +114,12 @@ test('provider credentials remain unavailable and preferences persist', async ({
   await page.getByLabel('Display name').fill('Jordan');
   await page
     .getByLabel('Preferred translation', { exact: true })
-    .selectOption('NIV');
+    .selectOption('ASV');
   await page.reload();
   await expect(page.getByLabel('Display name')).toHaveValue('Jordan');
   await page.goto('/#study');
   await expect(page.getByLabel('Translation', { exact: true })).toHaveValue(
-    'NIV',
+    'ASV',
   );
 });
 

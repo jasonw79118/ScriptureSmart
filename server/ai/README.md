@@ -96,6 +96,8 @@ Study requests may include a `bible.references` list of one to six validated ref
 
 Only Bible references go to the provider. Redirects fail closed. Retrieval shares a 12-second timeout and uses a bounded isolate-local public-text cache. No commentary, Greek lexicon, or exhaustive topical search is connected. See the main README for feature scope and provider limits.
 
+Interactive passage display can also use YouVersion (`YOUVERSION_API`), API.Bible (`API_BIBLE_KEY`), and Crossway's ESV API (`ESV_API_KEY`). Keep all three as Cloudflare Worker secrets; never expose them as Vite variables. API.Bible access is checked against the Bible versions enabled for the key, so the UI only offers licensed versions. ESV requests include Crossway's required ESV mark, copyright attribution, and source link. Display-provider text stays in the passage UI and is not sent to ScriptureSmart AI; AI study retrieval remains the separate WEB adapter above.
+
 Operator live check: `node scripts/check-live-bible-study.mjs` retrieves the four adoption passages and runs the example question through the model; it incurs model usage and is excluded from automated tests.
 
 ## Study conversation context

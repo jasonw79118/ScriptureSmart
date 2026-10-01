@@ -3,8 +3,7 @@ import { useEffect, useState } from 'react';
 import type { Note, TableItem } from '../domain/models';
 import {
   defaultComparisonTranslationId,
-  supportedComparisonIds,
-  supportedTranslationId,
+  defaultTranslationId,
   translations,
 } from '../domain/providers';
 import { Badge, Empty } from '../components';
@@ -15,6 +14,7 @@ export function PassageWorkspace({
   passage,
   setPassage,
   preferred,
+  availableTranslationIds,
   comparisons,
   notes,
   saveNotes,
@@ -25,6 +25,7 @@ export function PassageWorkspace({
   passage: string;
   setPassage: (p: string) => void;
   preferred: string;
+  availableTranslationIds: string[];
   comparisons: string[];
   notes: Note[];
   saveNotes: (n: Note[]) => void;
@@ -32,14 +33,19 @@ export function PassageWorkspace({
   connect: () => void;
   initialQuestion?: string;
 }) {
+  const availableTranslations = translations.filter((item) => availableTranslationIds.includes(item.id));
+  const initialTranslation = availableTranslationIds.includes(preferred)
+    ? preferred
+    : availableTranslationIds[0] ?? defaultTranslationId;
+  const initialComparison =
+    comparisons.find((id) => id !== initialTranslation && availableTranslationIds.includes(id)) ??
+    availableTranslationIds.find((id) => id !== initialTranslation) ??
+    defaultComparisonTranslationId;
   const [input, setInput] = useState(passage);
   const [tab, setTab] = useState('Scripture');
   const [note, setNote] = useState('');
-  const [translation, setTranslation] = useState(supportedTranslationId(preferred));
-  const [comparison, setComparison] = useState(
-    supportedComparisonIds(comparisons, supportedTranslationId(preferred))[0] ??
-      defaultComparisonTranslationId,
-  );
+  const [translation, setTranslation] = useState(initialTranslation);
+  const [comparison, setComparison] = useState(initialComparison);
   const [validation, setValidation] = useState('');
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [passageTexts, setPassageTexts] = useState<Record<string, BiblePassageResult>>({});
@@ -47,13 +53,16 @@ export function PassageWorkspace({
   const [loadingPassages, setLoadingPassages] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    const nextTranslation = supportedTranslationId(preferred);
+    const nextTranslation = availableTranslationIds.includes(preferred)
+      ? preferred
+      : availableTranslationIds[0] ?? defaultTranslationId;
     setTranslation(nextTranslation);
     setComparison(
-      supportedComparisonIds(comparisons, nextTranslation)[0] ??
+      comparisons.find((id) => id !== nextTranslation && availableTranslationIds.includes(id)) ??
+        availableTranslationIds.find((id) => id !== nextTranslation) ??
         defaultComparisonTranslationId,
     );
-  }, [preferred, comparisons]);
+  }, [preferred, comparisons, availableTranslationIds]);
 
   const noteChoices = (n: Note[]): ContextChoice[] => n.map((item) => ({
     id: `note-${item.id}`,
@@ -91,14 +100,14 @@ export function PassageWorkspace({
   const renderText = (id: string) => {
     const key = `${id}:${passage}`;
     const result = passageTexts[key];
-    if (loadingPassages[key]) return <p className="scripture-loading">Opening this passage from YouVersion…</p>;
+    if (loadingPassages[key]) return <p className="scripture-loading">Opening this passage from the selected Bible provider…</p>;
     if (passageErrors[key]) return <div role="alert" className="scripture-error"><strong>Passage unavailable</strong><p>{passageErrors[key]}</p><button className="text-button" onClick={connect}>View Bible connections</button></div>;
     if (!result) return <p className="scripture-loading">Loading the selected translation…</p>;
     return <>
       <p className="scripture-text preserve">{result.text}</p>
       <div className="scripture-attribution">
         <span>{result.attribution}</span>
-        <a href={result.sourceUrl} target="_blank" rel="noopener noreferrer">Open in YouVersion ↗</a>
+        <a href={result.sourceUrl} target="_blank" rel="noopener noreferrer">{id === 'ESV' ? 'Open on ESV.org ↗' : ['NIV', 'NKJV', 'KJV'].includes(id) ? 'Open API.Bible ↗' : 'Open in YouVersion ↗'}</a>
       </div>
     </>;
   };
@@ -138,7 +147,7 @@ export function PassageWorkspace({
             <summary>Bible</summary>
             <div className="resource-rail-list">
               <button onClick={() => jumpTo('translation-choices')}>Translations</button>
-              <button onClick={() => setTab(tab === 'Compare' ? 'Scripture' : 'Compare')}>Parallel Bible</button>
+              <button disabled={availableTranslations.length < 2} onClick={() => setTab(tab === 'Compare' ? 'Scripture' : 'Compare')}>Parallel Bible</button>
               <button onClick={() => jumpTo('study-notes')}>Saved Passages</button>
               <button onClick={() => jumpTo('reading-plans')}>Reading Plans</button>
             </div>
@@ -191,12 +200,12 @@ export function PassageWorkspace({
               <p>Read and study the passage in context</p>
             </div>
             <div className="translation-choices" id="translation-choices" aria-label="Available translations">
-              {translations.map((item) => <button key={item.id} aria-pressed={translation === item.id} className={translation === item.id ? 'selected' : ''} onClick={() => { setTranslation(item.id); setTab('Scripture'); }}>{item.id}</button>)}
-              <button aria-pressed={tab === 'Compare'} className={tab === 'Compare' ? 'selected compare-choice' : 'compare-choice'} onClick={() => setTab(tab === 'Compare' ? 'Scripture' : 'Compare')}>＋ Compare</button>
+              {availableTranslations.map((item) => <button key={item.id} aria-pressed={translation === item.id} className={translation === item.id ? 'selected' : ''} onClick={() => { setTranslation(item.id); setTab('Scripture'); }}>{item.id}</button>)}
+              <button disabled={availableTranslations.length < 2} aria-pressed={tab === 'Compare'} className={tab === 'Compare' ? 'selected compare-choice' : 'compare-choice'} onClick={() => setTab(tab === 'Compare' ? 'Scripture' : 'Compare')}>＋ Compare</button>
             </div>
             <div className={`scripture-reading ${tab === 'Compare' ? 'is-comparing' : ''}`}>
               {[translation, ...(tab === 'Compare' ? [comparison] : [])].map((id, index) => <section className="translation-column" key={`${id}-${index}`}>
-                {tab === 'Compare' && <label className="translation-select-label">{index ? 'Compare with' : 'Translation'}<select aria-label={index ? 'Comparison translation' : 'Translation'} value={id} onChange={(event) => index ? setComparison(event.target.value) : setTranslation(event.target.value)}>{translations.map((item) => <option key={item.id} value={item.id}>{item.id}</option>)}</select></label>}
+                {tab === 'Compare' && <label className="translation-select-label">{index ? 'Compare with' : 'Translation'}<select aria-label={index ? 'Comparison translation' : 'Translation'} value={id} onChange={(event) => index ? setComparison(event.target.value) : setTranslation(event.target.value)}>{availableTranslations.map((item) => <option key={item.id} value={item.id}>{item.id}</option>)}</select></label>}
                 {renderText(id)}
               </section>)}
             </div>

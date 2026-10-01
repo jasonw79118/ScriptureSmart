@@ -37,9 +37,8 @@ import { navigate, timestamp } from './utils';
 import {
   defaultComparisonTranslationId,
   defaultTranslationId,
-  supportedComparisonIds,
-  supportedTranslationId,
 } from './domain/providers';
+import { getBibleProviderStatus } from './ai/bibleClient';
 export type Route =
   | 'onboarding'
   | 'find-group'
@@ -182,6 +181,23 @@ function App() {
     },
     validPreferences,
   );
+  const [availableTranslationIds, setAvailableTranslationIds] = useState<string[]>(
+    [defaultTranslationId],
+  );
+  useEffect(() => {
+    const controller = new AbortController();
+    void getBibleProviderStatus(controller.signal)
+      .then((status) => {
+        setAvailableTranslationIds(
+          [...new Set(status.available ? status.translations.map((item) => item.id) : [])],
+        );
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+  const preferredTranslation = availableTranslationIds.includes(settings.translation)
+    ? settings.translation
+    : defaultTranslationId;
   const [selectedId, setSelectedId] = useState('');
   const [passage, setPassage] = useState('Ephesians 1:3–14');
   const [notice, setNotice] = useState('');
@@ -507,8 +523,8 @@ function App() {
                           placeholder="Ask anything about the Bible..."
                         />
                         <label className="sr-only" htmlFor="home-translation">Preferred translation</label>
-                        <select id="home-translation" aria-label="Preferred Bible translation" value={supportedTranslationId(settings.translation)} onChange={(event) => saveSettings({ ...settings, translation: event.target.value })}>
-                          {[defaultTranslationId, ...supportedComparisonIds([], defaultTranslationId), 'WEBUS', 'FBV', 'LSV', 'WMB', 'CPDV', 'TCENT'].filter((id, index, items) => items.indexOf(id) === index).map((id) => <option key={id} value={id}>{id}</option>)}
+                        <select id="home-translation" aria-label="Preferred Bible translation" value={preferredTranslation} onChange={(event) => saveSettings({ ...settings, translation: event.target.value })}>
+                          {[...new Set([defaultTranslationId, ...availableTranslationIds])].map((id) => <option key={id} value={id}>{id}</option>)}
                         </select>
                         <button className="button primary" aria-label="Start studying">→</button>
                       </form>
@@ -623,11 +639,9 @@ function App() {
                 <PassageWorkspace
                   passage={passage}
                   setPassage={setPassage}
-                  preferred={supportedTranslationId(settings.translation)}
-                  comparisons={supportedComparisonIds(
-                    settings.comparisons,
-                    supportedTranslationId(settings.translation),
-                  )}
+                  preferred={preferredTranslation}
+                  availableTranslationIds={availableTranslationIds}
+                  comparisons={settings.comparisons.filter((id) => availableTranslationIds.includes(id))}
                   notes={notes}
                   saveNotes={saveNotes}
                   send={sendToTable}
@@ -680,6 +694,7 @@ function App() {
                 <Settings
                   settings={settings}
                   save={saveSettings}
+                  availableTranslationIds={availableTranslationIds}
                   backup={{
                     version: 1,
                     drafts,

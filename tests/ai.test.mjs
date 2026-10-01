@@ -215,9 +215,31 @@ test('worker reports YouVersion status without exposing the server key', async (
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.equal(body.available, true);
-  assert.equal(body.provider, 'youversion');
+  assert.equal(body.provider, 'ScriptureSmart Bible providers');
   assert.equal(body.translations[0].id, 'BSB');
   assert.ok(!JSON.stringify(body).includes('server-secret'));
+});
+test('worker reports only API.Bible translations enabled for the server key', async () => {
+  const calls = [];
+  const worker = createWorker(async (url, options) => {
+    calls.push({ url: String(url), options });
+    const abbreviation = new URL(String(url)).searchParams.get('abbreviation');
+    return Response.json({
+      data: abbreviation === 'NIV'
+        ? [{ id: 'licensed-niv', abbreviation: 'NIV', name: 'New International Version' }]
+        : [],
+    });
+  });
+  const response = await worker.fetch(
+    new Request('https://worker.example.test/api/bible/status'),
+    env({ API_BIBLE_KEY: 'api-bible-server-secret' }),
+  );
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.deepEqual(body.translations.map((item) => item.id), ['NIV']);
+  assert.equal(calls.length, 3);
+  assert.ok(calls.every((call) => call.options.headers['api-key'] === 'api-bible-server-secret'));
+  assert.ok(!JSON.stringify(body).includes('api-bible-server-secret'));
 });
 test('worker proxies YouVersion passages only after Appwrite verification', async () => {
   const calls = [];
@@ -253,6 +275,36 @@ test('worker proxies YouVersion passages only after Appwrite verification', asyn
   assert.equal(body.translationId, 'BSB');
   assert.ok(!JSON.stringify(body).includes('server-secret'));
   assert.equal(calls.length, 2);
+});
+test('worker serves licensed NIV passages only to a verified Appwrite member', async () => {
+  const calls = [];
+  const worker = createWorker(async (url, options) => {
+    calls.push({ url: String(url), options });
+    if (String(url).includes('/account')) return verified();
+    if (String(url).includes('/bibles?'))
+      return Response.json({
+        data: [{ id: 'licensed-niv', abbreviation: 'NIV', name: 'New International Version' }],
+      });
+    return Response.json({
+      data: {
+        content: 'For God so loved the world.',
+        reference: 'John 3:16',
+        copyright: 'NIV copyright attribution.',
+      },
+    });
+  });
+  const response = await worker.fetch(
+    new Request('https://worker.example.test/api/bible/passage?reference=John%203:16&translationId=NIV', {
+      headers: { Origin: 'https://scripture.example.test', Authorization: 'Bearer valid-user-jwt' },
+    }),
+    env({ API_BIBLE_KEY: 'api-bible-server-secret' }),
+  );
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.translationId, 'NIV');
+  assert.match(body.attribution, /NIV copyright attribution/);
+  assert.equal(calls.length, 2);
+  assert.ok(!JSON.stringify(body).includes('api-bible-server-secret'));
 });
 test('worker fails closed when configuration or limit bindings are missing', async () => {
   const worker = createWorker(verified);

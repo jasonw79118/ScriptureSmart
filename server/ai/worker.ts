@@ -3,6 +3,11 @@ import {
   retrieveYouVersionPassage,
   youVersionTranslations,
 } from './youversion.ts';
+import {
+  listApiBibleTranslations,
+  retrieveApiBiblePassage,
+  retrieveEsvPassage,
+} from './translationProviders.ts';
 import { AIError, isRecord, type AIErrorCode } from '../../src/domain/ai.ts';
 import { normalizeReference } from '../../src/domain/bible.ts';
 import { readRequest } from './validation.ts';
@@ -23,6 +28,8 @@ export interface Env extends ModelConfig {
   APPWRITE_PROJECT_ID: string;
   ALLOWED_ORIGINS: string;
   YOUVERSION_API?: string;
+  API_BIBLE_KEY?: string;
+  ESV_API_KEY?: string;
 }
 const statusCodes: Record<AIErrorCode, number> = {
   'auth-unavailable': 503,
@@ -181,12 +188,23 @@ export function createWorker(
         });
       if (path === '/api/ai/status' && request.method === 'GET')
         return json({ available: ready(env), provider: 'scripturesmart-ai' });
-      if (path === '/api/bible/status' && request.method === 'GET')
-        return json({
-          available: ready(env) && !!env.YOUVERSION_API?.trim(),
-          provider: 'youversion',
-          translations: youVersionTranslations,
+      if (path === '/api/bible/status' && request.method === 'GET') {
+        const apiBibleTranslations = await listApiBibleTranslations({
+          apiKey: env.API_BIBLE_KEY,
+          transport,
         });
+        const esvConnected = !!env.ESV_API_KEY?.trim();
+        const translations = [
+          ...(env.YOUVERSION_API?.trim() ? youVersionTranslations : []),
+          ...apiBibleTranslations,
+          ...(esvConnected ? [{ id: 'ESV', name: 'English Standard Version' }] : []),
+        ];
+        return json({
+          available: ready(env) && translations.length > 0,
+          provider: 'ScriptureSmart Bible providers',
+          translations,
+        });
+      }
       if (path === '/api/bible/passage' && request.method === 'GET') {
         try {
           if (!ready(env)) throw new AIError('setup-required');
@@ -202,12 +220,25 @@ export function createWorker(
           const normalized = normalizeReference(reference);
           if (!normalized || !/^[A-Z0-9]{2,8}$/.test(translationId))
             throw new AIError('invalid');
-          const passage = await retrieveYouVersionPassage({
-            apiKey: env.YOUVERSION_API,
-            reference: normalized,
-            translationId,
-            transport,
-          });
+          const passage = youVersionTranslations.some((item) => item.id === translationId)
+            ? await retrieveYouVersionPassage({
+                apiKey: env.YOUVERSION_API,
+                reference: normalized,
+                translationId,
+                transport,
+              })
+            : translationId === 'ESV'
+              ? await retrieveEsvPassage({
+                  apiKey: env.ESV_API_KEY,
+                  reference: normalized,
+                  transport,
+                })
+              : await retrieveApiBiblePassage({
+                  apiKey: env.API_BIBLE_KEY,
+                  reference: normalized,
+                  translationId,
+                  transport,
+                });
           return json(passage);
         } catch (error) {
           const safe =

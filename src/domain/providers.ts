@@ -9,11 +9,13 @@ export const translations: Translation[] = [
   { id: 'WMB', name: 'World Messianic Bible' },
   { id: 'CPDV', name: 'Catholic Public Domain Version' },
   { id: 'TCENT', name: 'Text-Critical English New Testament' },
-].map((translation) => ({
-  ...translation,
-  providerIds: ['youversion'],
-  requiresLicense: false,
-}));
+].map((translation) => ({ ...translation, providerIds: ['youversion'], requiresLicense: false }));
+translations.push(
+  { id: 'ESV', name: 'English Standard Version', providerIds: ['esv'], requiresLicense: true },
+  { id: 'NIV', name: 'New International Version', providerIds: ['api-bible'], requiresLicense: true },
+  { id: 'KJV', name: 'King James Version', providerIds: ['api-bible'], requiresLicense: false },
+  { id: 'NKJV', name: 'New King James Version', providerIds: ['api-bible'], requiresLicense: true },
+);
 export const defaultTranslationId = 'BSB';
 export const defaultComparisonTranslationId = 'ASV';
 
@@ -43,12 +45,13 @@ export function supportedComparisonIds(
 }
 export const bibleProviders: BibleProvider[] = [
   { id: 'youversion', name: 'YouVersion', capabilities: ['text'] },
+  { id: 'api-bible', name: 'API.Bible', capabilities: ['text'] },
   {
     id: 'bible-brain',
     name: 'Bible Brain / Bible.is',
     capabilities: ['text', 'audio', 'video', 'language'],
   },
-  { id: 'esv', name: 'ESV API', capabilities: ['text'] },
+  { id: 'esv', name: 'Crossway ESV API', capabilities: ['text'] },
   {
     id: 'public-domain',
     name: 'Public-domain sources',

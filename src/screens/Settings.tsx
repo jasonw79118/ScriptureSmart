@@ -2,8 +2,8 @@ import { useCommunity } from '../community/CommunityContext';
 import { defaultAIProviderId } from '../domain/ai';
 import type { Preferences } from '../domain/models';
 import {
+  defaultTranslationId,
   supportedComparisonIds,
-  supportedTranslationId,
   translations,
 } from '../domain/providers';
 import { Heading } from '../components';
@@ -12,15 +12,20 @@ export function Settings({
   settings,
   save,
   backup,
+  availableTranslationIds,
 }: {
   settings: Preferences;
   save: (s: Preferences) => void;
   backup: unknown;
+  availableTranslationIds: string[];
 }) {
   const community = useCommunity();
-  const preferredTranslation = supportedTranslationId(settings.translation);
+  const availableTranslations = translations.filter((item) => availableTranslationIds.includes(item.id));
+  const preferredTranslation = availableTranslationIds.includes(settings.translation)
+    ? settings.translation
+    : defaultTranslationId;
   const comparisonIds = supportedComparisonIds(
-    settings.comparisons,
+    settings.comparisons.filter((id) => availableTranslationIds.includes(id)),
     preferredTranslation,
   );
   return (
@@ -49,14 +54,14 @@ export function Settings({
                 save({ ...settings, translation: e.target.value })
               }
             >
-              {translations.map((t) => (
+              {availableTranslations.map((t) => (
                 <option key={t.id}>{t.id}</option>
               ))}
             </select>
           </label>
           <fieldset>
             <legend>Comparison translations</legend>
-            {translations.map((t) => (
+            {availableTranslations.map((t) => (
               <label className="check" key={t.id}>
                 <input
                   type="checkbox"

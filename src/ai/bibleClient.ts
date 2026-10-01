@@ -38,7 +38,15 @@ export async function getBiblePassage(
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) {
-    throw new AIError(
+    let serverCode = '';
+    try {
+      const body: unknown = await response.json();
+      serverCode =
+        isRecord(body) && typeof body.code === 'string' ? body.code : '';
+    } catch {
+      serverCode = '';
+    }
+    const error = new AIError(
       response.status === 401
         ? 'sign-in'
         : response.status === 403
@@ -47,6 +55,9 @@ export async function getBiblePassage(
             ? 'rate-limit'
             : 'scripture-unavailable',
     );
+    if (serverCode)
+      error.message = `${error.message} (Server code: ${serverCode})`;
+    throw error;
   }
   const body: unknown = await response.json();
   if (

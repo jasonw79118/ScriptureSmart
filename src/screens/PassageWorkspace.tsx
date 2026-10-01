@@ -19,6 +19,7 @@ export function PassageWorkspace({
   saveNotes,
   send,
   connect,
+  initialQuestion = '',
 }: {
   passage: string;
   setPassage: (p: string) => void;
@@ -28,6 +29,7 @@ export function PassageWorkspace({
   saveNotes: (n: Note[]) => void;
   send: (t: string, kind?: TableItem['kind']) => void;
   connect: () => void;
+  initialQuestion?: string;
 }) {
   const [input, setInput] = useState(passage);
   const [tab, setTab] = useState('Scripture');
@@ -173,271 +175,297 @@ export function PassageWorkspace({
           Send to The Table ↗
         </button>
       </div>
-      <AssistantPanel
-        allowScripture
-        key={`${passage}:${translation}:${comparison}`}
-        baseContext={{
-          passageReference: passage,
-          translationIds: [translation, comparison],
-        }}
-        suggestions={[
-          'Explain this passage',
-          'Compare adoption in Ephesians 1 with other passages where Paul discusses adoption. Is adoption what is predetermined?',
-          'Compare the selected translations',
-          'Summarize my notes',
-          'Suggest study questions',
-          'Identify major interpretive questions',
-          'Create sermon ideas',
-        ]}
-        choices={[]}
-        onInsert={(text, question) =>
-          saveNotes([
-            {
-              id: crypto.randomUUID(),
-              passage,
-              text: `[AI SYNTHESIS]\nQuestion: ${question ?? 'Study chat'}\n\n${text}`,
-              visibility: 'private',
-              ownerId: 'local-user',
-            },
-            ...notes,
-          ])
-        }
-      />
-      <div className="tabs" aria-label="Passage tools">
-        {tabs.map((t) => (
-          <button aria-pressed={t === tab} key={t} onClick={() => setTab(t)}>
-            {t}
+      <div className="study-desk-layout">
+        <aside className="study-tool-rail" aria-label="Study resources">
+          <span className="eyebrow">Bible</span>
+          <button>Translations</button>
+          <button>Parallel Bible</button>
+          <button>Saved Passages</button>
+          <span className="eyebrow">Study Tools</span>
+          <button onClick={() => setTab('Commentary')}>Commentaries</button>
+          <button onClick={() => setTab('Cross references')}>
+            Cross References
           </button>
-        ))}
-      </div>
-      <section className="panel workspace-panel" aria-label={tab}>
-        {(tab === 'Scripture' || tab === 'Compare') && (
-          <>
-            <div className="section-heading">
-              <Badge>SCRIPTURE</Badge>
-              <span className="muted">Provider required</span>
-            </div>
-            <div className={tab === 'Compare' ? 'two-columns' : ''}>
-              {(tab === 'Compare'
-                ? [translation, comparison]
-                : [translation]
-              ).map((t, i) => (
-                <div key={i}>
-                  <label>
-                    {i ? 'Comparison translation' : 'Translation'}
-                    <select
-                      aria-label={i ? 'Comparison translation' : 'Translation'}
-                      value={t}
-                      onChange={(e) =>
-                        i
-                          ? setComparison(e.target.value)
-                          : setTranslation(e.target.value)
-                      }
-                    >
-                      {translations.map((tr) => (
-                        <option key={tr.id}>{tr.id}</option>
-                      ))}
-                    </select>
-                  </label>
-                  {loadingPassages[`${t}:${passage}`] && (
-                    <p>Loading {t} from YouVersion...</p>
-                  )}
-                  {passageErrors[`${t}:${passage}`] && (
-                    <div role="alert" className="alert">
-                      {passageErrors[`${t}:${passage}`]}
-                    </div>
-                  )}
-                  {passageTexts[`${t}:${passage}`] ? (
-                    <article className="note-card">
-                      <h3>
-                        {passageTexts[`${t}:${passage}`].reference} ({t})
-                      </h3>
-                      <p className="preserve">
-                        {passageTexts[`${t}:${passage}`].text}
-                      </p>
-                      <small>
-                        {passageTexts[`${t}:${passage}`].attribution}{' '}
-                        <a
-                          href={passageTexts[`${t}:${passage}`].sourceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          Open in YouVersion
-                        </a>
-                      </small>
-                    </article>
-                  ) : (
-                    !loadingPassages[`${t}:${passage}`] &&
-                    !passageErrors[`${t}:${passage}`] && (
-                      <Empty title={`Read ${passage} in ${t}`}>
-                        Sign in to load this passage through the connected
-                        YouVersion provider.
-                      </Empty>
-                    )
-                  )}
-                </div>
-              ))}
-            </div>
-            <button className="button secondary" onClick={connect}>
-              Explore Bible connections →
-            </button>
-          </>
-        )}
-        {tab === 'Original language' && (
-          <>
-            <Badge>ORIGINAL LANGUAGE DATA</Badge>
-            <Empty title="Let the original language speak">
-              Greek or Hebrew terms, transliterations, lemmas, lexical
-              definitions, grammar, and other occurrences will appear here when
-              a licensed data source is available.
-            </Empty>
-          </>
-        )}
-        {tab === 'Cross references' && (
-          <Empty title="Follow the connections">
-            Verified related passages can be saved to a sermon or study once a
-            cross-reference provider is connected.
-          </Empty>
-        )}
-        {tab === 'Commentary' && (
-          <>
-            <h2>Research across the Christian tradition</h2>
-            <p>
-              Source categories describe the type of resource; they do not imply
-              that a quotation or passage commentary is available.
-            </p>
-            <div className="research-categories">
-              {[
-                [
-                  'Early Church',
-                  'Irenaeus · Athanasius · Augustine · John Chrysostom',
-                ],
-                [
-                  'Councils & creeds',
-                  'Council of Nicaea · Primary historical sources',
-                ],
-                ['Reformation', 'Martin Luther · John Calvin'],
-                ['Historical commentators', 'Charles Spurgeon'],
-                [
-                  'Modern pastoral & theological voices',
-                  'C. S. Lewis · Tim Keller · John Piper',
-                ],
-              ].map(([title, names]) => (
-                <div className="category" key={title}>
-                  <h3>{title}</h3>
-                  <p>{names}</p>
-                  <small>Source collection not connected</small>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-        {tab === 'Interpretations' && (
-          <>
-            <h2>Major interpretive approaches</h2>
-            <Empty title="Room for thoughtful differences">
-              Future research will show explanations, arguments, relevant
-              passages, historical representatives, sources, and areas of
-              agreement and disagreement. No interpretations have been sourced
-              for this passage.
-            </Empty>
-          </>
-        )}
-        {tab === 'Notes' && (
-          <>
-            <Badge>USER NOTE</Badge>
-            <h2>Your observations</h2>
-            <form
-              className="form-stack"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!note.trim()) return;
-                saveNotes([
-                  {
-                    id: crypto.randomUUID(),
-                    passage,
-                    text: note.trim(),
-                    visibility: 'private',
-                    ownerId: 'local-user',
-                  },
-                  ...notes,
-                ]);
-                setNote('');
-              }}
-            >
-              <label>
-                New personal note
-                <textarea
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="What do you notice in the passage?"
-                  required
-                />
-              </label>
-              <button className="button primary" disabled={!note.trim()}>
-                Save note
+          <button onClick={() => setTab('Original language')}>
+            Original Languages
+          </button>
+          <button onClick={() => setTab('Notes')}>My Notes</button>
+        </aside>
+        <AssistantPanel
+          allowScripture
+          key={`${passage}:${translation}:${comparison}`}
+          baseContext={{
+            passageReference: passage,
+            translationIds: [translation, comparison],
+          }}
+          initialPrompt={initialQuestion}
+          suggestions={[
+            'Explain this passage',
+            'Compare adoption in Ephesians 1 with other passages where Paul discusses adoption. Is adoption what is predetermined?',
+            'Compare the selected translations',
+            'Summarize my notes',
+            'Suggest study questions',
+            'Identify major interpretive questions',
+            'Create sermon ideas',
+          ]}
+          choices={[]}
+          onInsert={(text, question) =>
+            saveNotes([
+              {
+                id: crypto.randomUUID(),
+                passage,
+                text: `[AI SYNTHESIS]\nQuestion: ${question ?? 'Study chat'}\n\n${text}`,
+                visibility: 'private',
+                ownerId: 'local-user',
+              },
+              ...notes,
+            ])
+          }
+        />
+        <div className="study-reader">
+          <div className="tabs" aria-label="Passage tools">
+            {tabs.map((t) => (
+              <button
+                aria-pressed={t === tab}
+                key={t}
+                onClick={() => setTab(t)}
+              >
+                {t}
               </button>
-            </form>
-            {notes
-              .filter((n) => n.passage === passage)
-              .map((n) => (
-                <article className="note-card" key={n.id}>
-                  <span className="muted">Private · This device</span>
-                  <p className="preserve">{n.text}</p>
-                  <div className="editor-toolbar">
-                    <button
-                      className="text-button"
-                      onClick={() => send(n.text)}
-                    >
-                      Send to local Table
-                    </button>
-                    <button
-                      className="text-button"
-                      onClick={() =>
-                        setActiveNoteId(activeNoteId === n.id ? null : n.id)
-                      }
-                    >
-                      {activeNoteId === n.id
-                        ? 'Close note question'
-                        : 'Ask AI about this note'}
-                    </button>
-                  </div>
-                  {activeNoteId === n.id && (
-                    <AssistantPanel
-                      key={`note-ai-${n.id}`}
-                      allowScripture
-                      baseContext={{
-                        passageReference: passage,
-                        translationIds: [translation, comparison],
-                      }}
-                      choices={noteChoices(n)}
-                      suggestions={[
-                        'What should I ask next from this note?',
-                        'Help me refine this note.',
-                        'What Bible passages clarify this note?',
-                        'Turn this note into a study question.',
-                      ]}
-                      onInsert={(text, question) =>
-                        saveNotes([
-                          {
-                            id: crypto.randomUUID(),
-                            passage,
-                            text: `[AI SYNTHESIS]\nQuestion: ${
-                              question ?? 'Question about saved note'
-                            }\nBased on note: ${n.text}\n\n${text}`,
-                            visibility: 'private',
-                            ownerId: 'local-user',
-                          },
-                          ...notes,
-                        ])
-                      }
+            ))}
+          </div>
+          <section className="panel workspace-panel" aria-label={tab}>
+            {(tab === 'Scripture' || tab === 'Compare') && (
+              <>
+                <div className="section-heading">
+                  <Badge>SCRIPTURE</Badge>
+                  <span className="muted">Provider required</span>
+                </div>
+                <div className={tab === 'Compare' ? 'two-columns' : ''}>
+                  {(tab === 'Compare'
+                    ? [translation, comparison]
+                    : [translation]
+                  ).map((t, i) => (
+                    <div key={i}>
+                      <label>
+                        {i ? 'Comparison translation' : 'Translation'}
+                        <select
+                          aria-label={
+                            i ? 'Comparison translation' : 'Translation'
+                          }
+                          value={t}
+                          onChange={(e) =>
+                            i
+                              ? setComparison(e.target.value)
+                              : setTranslation(e.target.value)
+                          }
+                        >
+                          {translations.map((tr) => (
+                            <option key={tr.id}>{tr.id}</option>
+                          ))}
+                        </select>
+                      </label>
+                      {loadingPassages[`${t}:${passage}`] && (
+                        <p>Loading {t} from YouVersion...</p>
+                      )}
+                      {passageErrors[`${t}:${passage}`] && (
+                        <div role="alert" className="alert">
+                          {passageErrors[`${t}:${passage}`]}
+                        </div>
+                      )}
+                      {passageTexts[`${t}:${passage}`] ? (
+                        <article className="note-card">
+                          <h3>
+                            {passageTexts[`${t}:${passage}`].reference} ({t})
+                          </h3>
+                          <p className="preserve">
+                            {passageTexts[`${t}:${passage}`].text}
+                          </p>
+                          <small>
+                            {passageTexts[`${t}:${passage}`].attribution}{' '}
+                            <a
+                              href={passageTexts[`${t}:${passage}`].sourceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              Open in YouVersion
+                            </a>
+                          </small>
+                        </article>
+                      ) : (
+                        !loadingPassages[`${t}:${passage}`] &&
+                        !passageErrors[`${t}:${passage}`] && (
+                          <Empty title={`Read ${passage} in ${t}`}>
+                            Sign in to load this passage through the connected
+                            YouVersion provider.
+                          </Empty>
+                        )
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button className="button secondary" onClick={connect}>
+                  Explore Bible connections →
+                </button>
+              </>
+            )}
+            {tab === 'Original language' && (
+              <>
+                <Badge>ORIGINAL LANGUAGE DATA</Badge>
+                <Empty title="Let the original language speak">
+                  Greek or Hebrew terms, transliterations, lemmas, lexical
+                  definitions, grammar, and other occurrences will appear here
+                  when a licensed data source is available.
+                </Empty>
+              </>
+            )}
+            {tab === 'Cross references' && (
+              <Empty title="Follow the connections">
+                Verified related passages can be saved to a sermon or study once
+                a cross-reference provider is connected.
+              </Empty>
+            )}
+            {tab === 'Commentary' && (
+              <>
+                <h2>Research across the Christian tradition</h2>
+                <p>
+                  Source categories describe the type of resource; they do not
+                  imply that a quotation or passage commentary is available.
+                </p>
+                <div className="research-categories">
+                  {[
+                    [
+                      'Early Church',
+                      'Irenaeus · Athanasius · Augustine · John Chrysostom',
+                    ],
+                    [
+                      'Councils & creeds',
+                      'Council of Nicaea · Primary historical sources',
+                    ],
+                    ['Reformation', 'Martin Luther · John Calvin'],
+                    ['Historical commentators', 'Charles Spurgeon'],
+                    [
+                      'Modern pastoral & theological voices',
+                      'C. S. Lewis · Tim Keller · John Piper',
+                    ],
+                  ].map(([title, names]) => (
+                    <div className="category" key={title}>
+                      <h3>{title}</h3>
+                      <p>{names}</p>
+                      <small>Source collection not connected</small>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            {tab === 'Interpretations' && (
+              <>
+                <h2>Major interpretive approaches</h2>
+                <Empty title="Room for thoughtful differences">
+                  Future research will show explanations, arguments, relevant
+                  passages, historical representatives, sources, and areas of
+                  agreement and disagreement. No interpretations have been
+                  sourced for this passage.
+                </Empty>
+              </>
+            )}
+            {tab === 'Notes' && (
+              <>
+                <Badge>USER NOTE</Badge>
+                <h2>Your observations</h2>
+                <form
+                  className="form-stack"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!note.trim()) return;
+                    saveNotes([
+                      {
+                        id: crypto.randomUUID(),
+                        passage,
+                        text: note.trim(),
+                        visibility: 'private',
+                        ownerId: 'local-user',
+                      },
+                      ...notes,
+                    ]);
+                    setNote('');
+                  }}
+                >
+                  <label>
+                    New personal note
+                    <textarea
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      placeholder="What do you notice in the passage?"
+                      required
                     />
-                  )}
-                </article>
-              ))}
-          </>
-        )}
-      </section>
+                  </label>
+                  <button className="button primary" disabled={!note.trim()}>
+                    Save note
+                  </button>
+                </form>
+                {notes
+                  .filter((n) => n.passage === passage)
+                  .map((n) => (
+                    <article className="note-card" key={n.id}>
+                      <span className="muted">Private · This device</span>
+                      <p className="preserve">{n.text}</p>
+                      <div className="editor-toolbar">
+                        <button
+                          className="text-button"
+                          onClick={() => send(n.text)}
+                        >
+                          Send to local Table
+                        </button>
+                        <button
+                          className="text-button"
+                          onClick={() =>
+                            setActiveNoteId(activeNoteId === n.id ? null : n.id)
+                          }
+                        >
+                          {activeNoteId === n.id
+                            ? 'Close note question'
+                            : 'Ask AI about this note'}
+                        </button>
+                      </div>
+                      {activeNoteId === n.id && (
+                        <AssistantPanel
+                          key={`note-ai-${n.id}`}
+                          allowScripture
+                          baseContext={{
+                            passageReference: passage,
+                            translationIds: [translation, comparison],
+                          }}
+                          choices={noteChoices(n)}
+                          suggestions={[
+                            'What should I ask next from this note?',
+                            'Help me refine this note.',
+                            'What Bible passages clarify this note?',
+                            'Turn this note into a study question.',
+                          ]}
+                          onInsert={(text, question) =>
+                            saveNotes([
+                              {
+                                id: crypto.randomUUID(),
+                                passage,
+                                text: `[AI SYNTHESIS]\nQuestion: ${
+                                  question ?? 'Question about saved note'
+                                }\nBased on note: ${n.text}\n\n${text}`,
+                                visibility: 'private',
+                                ownerId: 'local-user',
+                              },
+                              ...notes,
+                            ])
+                          }
+                        />
+                      )}
+                    </article>
+                  ))}
+              </>
+            )}
+          </section>
+        </div>
+      </div>
       <div className="integrity-note">
         ◇ Scripture, historical sources, personal notes, and AI synthesis each
         keep their own identity.

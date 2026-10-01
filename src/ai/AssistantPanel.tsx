@@ -25,6 +25,7 @@ export function AssistantPanel({
   baseContext = {},
   choices = [],
   suggestions,
+  initialPrompt = '',
   actionLabel = 'Ask ScriptureSmart',
   onInsert,
   insertLabel = 'Insert into notes',
@@ -36,6 +37,7 @@ export function AssistantPanel({
   baseContext?: AIContext;
   choices?: ContextChoice[];
   suggestions: string[];
+  initialPrompt?: string;
   actionLabel?: string;
   onInsert?: (text: string, question?: string) => void;
   insertLabel?: string;
@@ -72,6 +74,11 @@ export function AssistantPanel({
     },
     [],
   );
+
+  useEffect(() => {
+    if (!initialPrompt.trim()) return;
+    setPrompt(initialPrompt);
+  }, [initialPrompt]);
 
   function cancel() {
     operation.current++;

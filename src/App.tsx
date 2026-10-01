@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+﻿import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type {
   DocumentKind,
   Draft,
@@ -16,7 +16,6 @@ import {
   Connections,
   Settings,
 } from './Screens';
-import { Badge } from './components';
 import './App.css';
 import './community/community.css';
 import { useCommunity } from './community/CommunityContext';
@@ -56,19 +55,24 @@ export type Route =
   | 'connections'
   | 'settings';
 const nav: { id: Route; label: string; icon: string }[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: '◫' },
-  { id: 'study', label: 'Study', icon: '▤' },
-  { id: 'sermons', label: 'Sermons', icon: '♧' },
-  { id: 'bible-studies', label: 'Bible Studies', icon: '▥' },
-  { id: 'church', label: 'Our Church', icon: '⌂' },
-  { id: 'member-login', label: 'Member login', icon: '♙' },
-  { id: 'find-group', label: 'Find a group', icon: '◎' },
-  { id: 'groups', label: 'Groups', icon: '♧' },
-  { id: 'table', label: 'The Table', icon: '⊞' },
-  { id: 'library', label: 'Library', icon: '▱' },
-  { id: 'research', label: 'Research', icon: '⌕' },
-  { id: 'connections', label: 'Connections', icon: '⌘' },
-  { id: 'settings', label: 'Settings', icon: '⚙' },
+  { id: 'dashboard', label: 'Home', icon: 'âŒ‚' },
+  { id: 'study', label: 'Study', icon: 'â–¤' },
+  { id: 'research', label: 'Explore', icon: 'âŒ•' },
+  { id: 'sermons', label: 'Create', icon: 'âœ' },
+  { id: 'groups', label: 'Groups', icon: 'â™§' },
+  { id: 'library', label: 'Library', icon: 'â–±' },
+];
+const allRoutes: Route[] = [
+  ...nav.map((n) => n.id),
+  'onboarding',
+  'find-group',
+  'bible-studies',
+  'guide',
+  'church',
+  'member-login',
+  'table',
+  'connections',
+  'settings',
 ];
 const labels = {
   sermon: 'Sermon',
@@ -77,9 +81,7 @@ const labels = {
 };
 function routeFromHash(): Route {
   const route = location.hash.slice(1).split('/')[0];
-  return [...nav.map((n) => n.id), 'guide', 'onboarding'].includes(route)
-    ? (route as Route)
-    : 'dashboard';
+  return allRoutes.includes(route as Route) ? (route as Route) : 'dashboard';
 }
 function App() {
   const community = useCommunity();
@@ -165,8 +167,10 @@ function App() {
     validPreferences,
   );
   const [selectedId, setSelectedId] = useState('');
-  const [passage, setPassage] = useState('Ephesians 1:3–14');
+  const [passage, setPassage] = useState('Ephesians 1:3â€“14');
   const [notice, setNotice] = useState('');
+  const [homeQuery, setHomeQuery] = useState('');
+  const [studyQuestion, setStudyQuestion] = useState('');
   useEffect(() => {
     const onHash = () => {
       setRoute(routeFromHash());
@@ -177,11 +181,24 @@ function App() {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
   useEffect(() => {
-    document.title = `${nav.find((n) => n.id === route)?.label ?? (route === 'onboarding' ? 'Church connection' : 'Discussion Guide')} · ScriptureSmart`;
+    document.title = `${nav.find((n) => n.id === route)?.label ?? (route === 'onboarding' ? 'Church connection' : 'Discussion Guide')} Â· ScriptureSmart`;
   }, [route]);
   function go(next: Route) {
     navigate(next);
     setMenu(false);
+  }
+  function startHomeStudy(query: string) {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    const referencePattern =
+      /^[1-3]?\s*[A-Za-z]+(?:\s+[A-Za-z]+)*\s+\d+(?::\d+)?(?:\s*[-â€“]\s*\d+(?::\d+)?)?$/;
+    if (referencePattern.test(trimmed)) {
+      setPassage(trimmed);
+      setStudyQuestion(`Explain ${trimmed}`);
+    } else {
+      setStudyQuestion(trimmed);
+    }
+    go('study');
   }
   function openDraft(draft: Draft) {
     setSelectedId(draft.id);
@@ -263,16 +280,16 @@ function App() {
             onClick={() => openDraft(d)}
           >
             <div className={`document-icon ${d.kind}`}>
-              {d.kind === 'sermon' ? '♧' : d.kind === 'study' ? '▤' : '☷'}
+              {d.kind === 'sermon' ? 'â™§' : d.kind === 'study' ? 'â–¤' : 'â˜·'}
             </div>
             <div className="card-kicker">
-              {labels[d.kind]} {d.sample && <span>· Sample</span>}
+              {labels[d.kind]} {d.sample && <span>Â· Sample</span>}
             </div>
             <h3>{d.title}</h3>
             <p>{d.passage || 'Add a passage'}</p>
             <div className="card-footer">
               <span>Draft</span>
-              <span>Continue writing ↗</span>
+              <span>Continue writing â†—</span>
             </div>
           </button>
         ))}
@@ -317,7 +334,7 @@ function App() {
           Close menu <span aria-hidden="true">&times;</span>
         </button>
         <a className="brand" href="#dashboard">
-          <span className="brand-symbol">▥</span>
+          <span className="brand-symbol">â–¥</span>
           <span>
             Scripture<span className="brand-light">Smart</span>
             <small>YOUR STUDY WORKSPACE</small>
@@ -361,7 +378,7 @@ function App() {
             </span>
             <div>
               {settings.name}
-              <small>Personal account · Preview</small>
+              <small>Personal account Â· Preview</small>
             </div>
           </div>
         </div>
@@ -384,7 +401,7 @@ function App() {
               aria-expanded={menu}
               onClick={() => setMenu(!menu)}
             >
-              ☰
+              â˜°
             </button>
             <span>Workspace</span>
             <span className="slash">/</span>
@@ -398,7 +415,7 @@ function App() {
           <div className="topbar-right">
             <span className="preview-label">LOCAL PREVIEW</span>
             <button className="search-shortcut" onClick={() => go('library')}>
-              ⌕ <span>Find in library</span>
+              âŒ• <span>Find in library</span>
             </button>
             <span className="avatar small">
               {settings.name.charAt(0).toUpperCase()}
@@ -407,7 +424,7 @@ function App() {
         </header>
         <main id="main-content" tabIndex={-1}>
           <div className="preview-banner">
-            <span>◇</span> Personal study drafts are local. Open your church
+            <span>â—‡</span> Personal study drafts are local. Open your church
             workspace for group planning; your edits stay in this browser.
           </div>
           {error && (
@@ -422,7 +439,7 @@ function App() {
                 aria-label="Dismiss notification"
                 onClick={() => setNotice('')}
               >
-                ×
+                Ã—
               </button>
             </div>
           )}
@@ -440,194 +457,155 @@ function App() {
               {route === 'find-group' && <GroupFinder />}
               {route === 'dashboard' && (
                 <>
-                  <div className="page-heading">
-                    <div>
-                      <div className="eyebrow">A LITTLE SPACE TO GO DEEPER</div>
-                      <h1>Welcome to your study.</h1>
-                      <p>Study deeply. Teach faithfully. Grow together.</p>
-                    </div>
-                    <button
-                      className="button primary"
-                      onClick={() => go('study')}
-                    >
-                      ＋ Study a passage
-                    </button>
-                  </div>
-                  <section className="hero">
-                    <div className="hero-content">
+                  <section className="home-study-hero">
+                    <div className="home-hero-copy">
                       <span className="hero-eyebrow">
-                        OPEN THE WORD. MAKE ROOM FOR DISCOVERY.
+                        SCRIPTURESMART STUDY DESK
                       </span>
-                      <h2>
-                        Good study begins
-                        <br />
-                        with a thoughtful question.
-                      </h2>
+                      <h1>What are you studying today?</h1>
                       <p>
-                        Bring your Scripture, notes, and research together.
-                        <br className="desktop-break" /> Give your next study
-                        the space it deserves.
+                        Ask a Bible question, open a passage, prepare to teach,
+                        or gather your notes for deeper study.
                       </p>
-                      <button
-                        className="button cream"
-                        onClick={() => go('study')}
+                      <form
+                        className="home-ask-form"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          startHomeStudy(homeQuery);
+                        }}
                       >
-                        Explore a passage <span>→</span>
-                      </button>
-                    </div>
-                    <div className="book-art" aria-hidden="true">
-                      <div className="art-orbit orbit-one" />
-                      <div className="art-orbit orbit-two" />
-                      <div className="book">
-                        <div className="book-left">
-                          <i />
-                          <i />
-                          <i />
-                          <i />
-                          <i />
-                          <i />
-                        </div>
-                        <div className="book-right">
-                          <i />
-                          <i />
-                          <i />
-                          <i />
-                          <i />
-                          <i />
-                        </div>
-                        <div className="bookmark" />
+                        <label className="sr-only" htmlFor="home-study-query">
+                          Ask anything about the Bible
+                        </label>
+                        <input
+                          id="home-study-query"
+                          value={homeQuery}
+                          onChange={(event) => setHomeQuery(event.target.value)}
+                          placeholder="Ask anything about the Bible..."
+                        />
+                        <button className="button primary">Study â†’</button>
+                      </form>
+                      <div
+                        className="prompt-pills"
+                        aria-label="Quick study prompts"
+                      >
+                        {[
+                          'Explain Ephesians 2:8-10',
+                          'What does the Bible say about anxiety?',
+                          'Compare the Gospels',
+                          'Help me prepare a sermon',
+                        ].map((prompt) => (
+                          <button
+                            className="text-button"
+                            key={prompt}
+                            onClick={() => {
+                              setHomeQuery(prompt);
+                              startHomeStudy(prompt);
+                            }}
+                          >
+                            {prompt}
+                          </button>
+                        ))}
                       </div>
-                      <span className="art-star">✧</span>
-                      <span className="art-caption">ROOTED IN SCRIPTURE</span>
+                    </div>
+                    <div className="study-room-art" aria-hidden="true">
+                      <div className="desk-card manuscript-card">
+                        Ephesians 1
+                      </div>
+                      <div className="desk-card notes-card">
+                        Notes + questions
+                      </div>
+                      <div className="lamp-glow" />
                     </div>
                   </section>
-                  <section
-                    className="quick-actions"
-                    aria-label="Create content"
-                  >
-                    <button onClick={() => create('sermon')}>
-                      <span className="action-icon">♧</span>
-                      <div>
-                        <strong>Build a sermon</strong>
-                        <small>From passage to proclamation</small>
-                      </div>
-                      <span>↗</span>
-                    </button>
-                    <button onClick={() => create('study')}>
-                      <span className="action-icon">▤</span>
-                      <div>
-                        <strong>Create a Bible study</strong>
-                        <small>Make space for discovery</small>
-                      </div>
-                      <span>↗</span>
-                    </button>
-                    <button onClick={() => create('guide')}>
-                      <span className="action-icon">☷</span>
-                      <div>
-                        <strong>Sermon to discussion</strong>
-                        <small>Continue the conversation</small>
-                      </div>
-                      <span>↗</span>
-                    </button>
+                  <section className="pathway-grid" aria-label="Study pathways">
+                    {[
+                      [
+                        'Study Scripture',
+                        'Ask questions, explore passages, compare translations, and study deeply.',
+                        () => go('study'),
+                      ],
+                      [
+                        'Prepare to Teach',
+                        'Build sermons, Bible studies, teaching notes, and discussion guides.',
+                        () => create('sermon'),
+                      ],
+                      [
+                        'Explore Resources',
+                        'Browse commentary categories, church history, creeds, notes, and related resources.',
+                        () => go('research'),
+                      ],
+                      [
+                        'Study Together',
+                        'Open groups, shared studies, The Table, meals, kids planning, and logistics.',
+                        () => go('groups'),
+                      ],
+                    ].map(([title, description, action]) => (
+                      <button
+                        className="pathway-card"
+                        key={title as string}
+                        onClick={action as () => void}
+                      >
+                        <span>âœ¦</span>
+                        <strong>{title as string}</strong>
+                        <small>{description as string}</small>
+                      </button>
+                    ))}
                   </section>
-                  <div className="section-heading">
-                    <h2>Pick up where you left off</h2>
-                    <button
-                      className="text-button"
-                      onClick={() => go('library')}
-                    >
-                      View library →
-                    </button>
-                  </div>
-                  {draftCards(
-                    [...drafts]
-                      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-                      .slice(0, 3),
-                  )}
-                  <div className="dashboard-bottom">
-                    <section className="panel">
+                  <div className="study-overview-grid">
+                    <section className="panel editorial-panel">
                       <div className="section-heading">
-                        <h2>Around The Table</h2>
-                        <Badge>
-                          {community.configured
-                            ? 'Church community'
-                            : 'Local planning'}
-                        </Badge>
+                        <h2>Continue Studying</h2>
+                        <button
+                          className="text-button"
+                          onClick={() => go('library')}
+                        >
+                          View library â†’
+                        </button>
                       </div>
-                      <div className="group-summary">
-                        <div className="group-art">♧</div>
-                        <div>
-                          <h3>{community.group?.name ?? 'Your group'}</h3>
-                          <p>
-                            {community.group?.rhythm ??
-                              'Plan your next gathering'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="discussion-preview">
-                        <span className="eyebrow">
-                          A QUESTION TO BRING TOGETHER
-                        </span>
-                        <p>
-                          {table[0]?.text ??
-                            'Bring your first question to The Table.'}
-                        </p>
-                        <span className="muted">
-                          {table.length} local items · No live group activity
-                        </span>
-                      </div>
-                      <button
-                        className="text-button"
-                        onClick={() => go('table')}
-                      >
-                        Open The Table →
-                      </button>
+                      {draftCards(
+                        [...drafts]
+                          .sort((a, b) =>
+                            b.updatedAt.localeCompare(a.updatedAt),
+                          )
+                          .slice(0, 3),
+                      )}
                     </section>
-                    <section className="panel">
-                      <div className="section-heading">
-                        <h2>Your study toolkit</h2>
-                        <span className="muted">
-                          Check service availability
-                        </span>
+                    <section className="panel editorial-panel">
+                      <h2>Recent Passages</h2>
+                      <div className="inline-links">
+                        <button onClick={() => go('study')}>
+                          {passage} â†’
+                        </button>
+                        <button onClick={() => go('research')}>
+                          Saved notes Â· {notes.length} â†’
+                        </button>
+                        <button onClick={() => go('groups')}>
+                          {groupLabel} Â· this week â†’
+                        </button>
                       </div>
-                      <div className="toolkit-row">
-                        <span className="tool-icon">▤</span>
-                        <div>
-                          <strong>Bible providers</strong>
-                          <small>Bring your preferred translations</small>
-                        </div>
-                        <span className="status-dot" />
-                      </div>
-                      <div className="toolkit-row">
-                        <span className="tool-icon">✧</span>
-                        <div>
-                          <strong>ScriptureSmart AI</strong>
-                          <small>Built-in assistance for your study</small>
-                        </div>
-                        <span className="status-dot" />
-                      </div>
-                      <button
-                        className="button secondary wide"
-                        onClick={() => go('connections')}
-                      >
-                        Explore connections ↗
-                      </button>
                     </section>
                   </div>
-                  <div className="section-heading">
-                    <h2>On your desk</h2>
-                  </div>
-                  <div className="inline-links">
-                    <button onClick={() => go('study')}>
-                      Recent passage · {passage} →
-                    </button>
-                    <button onClick={() => go('research')}>
-                      Saved research · {notes.length} notes →
-                    </button>
-                    <button onClick={() => go('groups')}>
-                      {groupLabel} · Plan meals and attendance →
-                    </button>
-                  </div>
+                  <section className="resource-strip">
+                    <div>
+                      <span className="eyebrow">
+                        EXPLORE SCRIPTURE FROM EVERY ANGLE
+                      </span>
+                      <h2>A richer view of Godâ€™s Word</h2>
+                    </div>
+                    {[
+                      'Commentaries',
+                      'Cross References',
+                      'Original Languages',
+                      'Church History',
+                      'Maps & Timelines',
+                      'Topics & Themes',
+                    ].map((item) => (
+                      <button key={item} onClick={() => go('research')}>
+                        {item}
+                      </button>
+                    ))}
+                  </section>
                 </>
               )}
               {route === 'study' && (
@@ -643,6 +621,7 @@ function App() {
                   saveNotes={saveNotes}
                   send={sendToTable}
                   connect={() => go('connections')}
+                  initialQuestion={studyQuestion}
                 />
               )}
               {(['sermons', 'bible-studies', 'guide'] as Route[]).includes(
@@ -703,7 +682,7 @@ function App() {
             </>
           )}
           <footer>
-            <span className="footer-brand">▥ ScriptureSmart</span>
+            <span className="footer-brand">â–¥ ScriptureSmart</span>
             <span>Rooted in Scripture. Thoughtful by design.</span>
             <span>Foundation preview</span>
           </footer>

@@ -14,6 +14,33 @@ export const translations: Translation[] = [
   providerIds: ['youversion'],
   requiresLicense: false,
 }));
+export const defaultTranslationId = 'BSB';
+export const defaultComparisonTranslationId = 'ASV';
+
+export function supportedTranslationId(
+  id: string,
+  fallback = defaultTranslationId,
+): string {
+  return translations.some((translation) => translation.id === id)
+    ? id
+    : fallback;
+}
+
+export function supportedComparisonIds(
+  ids: string[],
+  preferred = defaultTranslationId,
+): string[] {
+  const supported = ids.filter(
+    (id) =>
+      id !== preferred &&
+      translations.some((translation) => translation.id === id),
+  );
+  return supported.length
+    ? supported
+    : [supportedTranslationId(defaultComparisonTranslationId)].filter(
+        (id) => id !== preferred,
+      );
+}
 export const bibleProviders: BibleProvider[] = [
   { id: 'youversion', name: 'YouVersion', capabilities: ['text'] },
   {

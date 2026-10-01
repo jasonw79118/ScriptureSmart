@@ -33,6 +33,12 @@ import {
   validPreferences,
 } from './data/validation';
 import { navigate, timestamp } from './utils';
+import {
+  defaultComparisonTranslationId,
+  defaultTranslationId,
+  supportedComparisonIds,
+  supportedTranslationId,
+} from './domain/providers';
 export type Route =
   | 'onboarding'
   | 'find-group'
@@ -150,8 +156,8 @@ function App() {
     'ss.settings.v1',
     {
       name: 'Friend',
-      translation: 'BSB',
-      comparisons: ['ASV'],
+      translation: defaultTranslationId,
+      comparisons: [defaultComparisonTranslationId],
       tradition: 'Not specified',
       statement: '',
       showOthers: true,
@@ -628,8 +634,11 @@ function App() {
                 <PassageWorkspace
                   passage={passage}
                   setPassage={setPassage}
-                  preferred={settings.translation}
-                  comparisons={settings.comparisons}
+                  preferred={supportedTranslationId(settings.translation)}
+                  comparisons={supportedComparisonIds(
+                    settings.comparisons,
+                    supportedTranslationId(settings.translation),
+                  )}
                   notes={notes}
                   saveNotes={saveNotes}
                   send={sendToTable}

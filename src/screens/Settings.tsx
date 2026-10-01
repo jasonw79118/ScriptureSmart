@@ -1,7 +1,11 @@
 import { useCommunity } from '../community/CommunityContext';
 import { defaultAIProviderId } from '../domain/ai';
 import type { Preferences } from '../domain/models';
-import { translations } from '../domain/providers';
+import {
+  supportedComparisonIds,
+  supportedTranslationId,
+  translations,
+} from '../domain/providers';
 import { Heading } from '../components';
 import { exportText } from '../utils';
 export function Settings({
@@ -14,6 +18,11 @@ export function Settings({
   backup: unknown;
 }) {
   const community = useCommunity();
+  const preferredTranslation = supportedTranslationId(settings.translation);
+  const comparisonIds = supportedComparisonIds(
+    settings.comparisons,
+    preferredTranslation,
+  );
   return (
     <>
       <Heading
@@ -35,7 +44,7 @@ export function Settings({
             Preferred translation
             <select
               aria-label="Preferred translation"
-              value={settings.translation}
+              value={preferredTranslation}
               onChange={(e) =>
                 save({ ...settings, translation: e.target.value })
               }
@@ -51,13 +60,13 @@ export function Settings({
               <label className="check" key={t.id}>
                 <input
                   type="checkbox"
-                  checked={settings.comparisons.includes(t.id)}
+                  checked={comparisonIds.includes(t.id)}
                   onChange={(e) =>
                     save({
                       ...settings,
                       comparisons: e.target.checked
-                        ? [...settings.comparisons, t.id]
-                        : settings.comparisons.filter((id) => id !== t.id),
+                        ? [...comparisonIds, t.id]
+                        : comparisonIds.filter((id) => id !== t.id),
                     })
                   }
                 />

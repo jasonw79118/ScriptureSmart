@@ -1,7 +1,12 @@
 import { AssistantPanel, type ContextChoice } from '../ai/AssistantPanel';
 import { useEffect, useState } from 'react';
 import type { Note, TableItem } from '../domain/models';
-import { translations } from '../domain/providers';
+import {
+  defaultComparisonTranslationId,
+  supportedComparisonIds,
+  supportedTranslationId,
+  translations,
+} from '../domain/providers';
 import { Badge, Empty, Heading } from '../components';
 import { getBiblePassage, type BiblePassageResult } from '../ai/bibleClient';
 import { AIError } from '../domain/ai';
@@ -27,9 +32,12 @@ export function PassageWorkspace({
   const [input, setInput] = useState(passage);
   const [tab, setTab] = useState('Scripture');
   const [note, setNote] = useState('');
-  const [translation, setTranslation] = useState(preferred);
+  const [translation, setTranslation] = useState(
+    supportedTranslationId(preferred),
+  );
   const [comparison, setComparison] = useState(
-    comparisons.find((t) => t !== preferred) ?? 'ASV',
+    supportedComparisonIds(comparisons, supportedTranslationId(preferred))[0] ??
+      defaultComparisonTranslationId,
   );
   const [validation, setValidation] = useState('');
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
@@ -42,6 +50,14 @@ export function PassageWorkspace({
   const [loadingPassages, setLoadingPassages] = useState<
     Record<string, boolean>
   >({});
+  useEffect(() => {
+    const nextTranslation = supportedTranslationId(preferred);
+    setTranslation(nextTranslation);
+    setComparison(
+      supportedComparisonIds(comparisons, nextTranslation)[0] ??
+        defaultComparisonTranslationId,
+    );
+  }, [preferred, comparisons]);
   const noteChoices = (n: Note): ContextChoice[] => [
     {
       id: `note-${n.id}`,

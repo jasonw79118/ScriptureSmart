@@ -1,5 +1,7 @@
 import { retrievePassages } from './scripture.ts';
+import { retrieveYouVersionPassage } from './youversion.ts';
 import { AIError, isRecord, type AIErrorCode } from '../../src/domain/ai.ts';
+import { normalizeReference } from '../../src/domain/bible.ts';
 import { readRequest } from './validation.ts';
 import {
   generateWithBinding,
@@ -17,6 +19,7 @@ export interface Env extends ModelConfig {
   APPWRITE_ENDPOINT: string;
   APPWRITE_PROJECT_ID: string;
   ALLOWED_ORIGINS: string;
+  YOUVERSION_API?: string;
 }
 const statusCodes: Record<AIErrorCode, number> = {
   'auth-unavailable': 503,
@@ -154,7 +157,11 @@ export function createWorker(
         });
       if (origin && !allowed.includes(origin))
         return json({ code: 'forbidden' }, 403);
-      if (!['/api/ai/status', '/api/ai/generate'].includes(path))
+      if (
+        !['/api/ai/status', '/api/ai/generate', '/api/bible/passage'].includes(
+          path,
+        )
+      )
         return json({ code: 'invalid' }, 404);
       if (request.method === 'OPTIONS')
         return new Response(null, {
@@ -168,9 +175,47 @@ export function createWorker(
         });
       if (path === '/api/ai/status' && request.method === 'GET')
         return json({ available: ready(env), provider: 'scripturesmart-ai' });
+      if (path === '/api/bible/passage' && request.method === 'GET') {
+        try {
+          if (!ready(env)) throw new AIError('setup-required');
+          if (
+            !(await env.AI_GLOBAL_LIMIT.limit({ key: 'all-requests' })).success
+          )
+            throw new AIError('rate-limit');
+          const userId = await verifiedUser(request, env, transport);
+          await checkAllowance(env, userId);
+          const url = new URL(request.url);
+          const reference = url.searchParams.get('reference') ?? '';
+          const translationId = url.searchParams.get('translationId') ?? '';
+          const normalized = normalizeReference(reference);
+          if (!normalized || !/^[A-Z0-9]{2,8}$/.test(translationId))
+            throw new AIError('invalid');
+          const passage = await retrieveYouVersionPassage({
+            apiKey: env.YOUVERSION_API,
+            reference: normalized,
+            translationId,
+            transport,
+          });
+          return json(passage);
+        } catch (error) {
+          const safe =
+            error instanceof AIError
+              ? error
+              : new AIError('scripture-unavailable');
+          return json(
+            { code: safe.code, message: safe.message },
+            statusCodes[safe.code],
+            safe.code === 'rate-limit' ? { 'Retry-After': '60' } : {},
+          );
+        }
+      }
       if (path !== '/api/ai/generate' || request.method !== 'POST')
         return json({ code: 'invalid' }, 405, {
-          Allow: path.endsWith('status') ? 'GET' : 'POST',
+          Allow: path.endsWith('status')
+            ? 'GET'
+            : path.endsWith('passage')
+              ? 'GET'
+              : 'POST',
         });
       try {
         if (!ready(env)) throw new AIError('setup-required');

@@ -205,6 +205,41 @@ test('worker verifies caller with fixed Appwrite endpoint and applies caller-bas
   assert.equal(body.provider, 'scripturesmart-ai');
   assert.ok(!JSON.stringify(body).includes('valid-user-jwt'));
 });
+test('worker proxies YouVersion passages only after Appwrite verification', async () => {
+  const calls = [];
+  const worker = createWorker(async (url, options) => {
+    calls.push({ url, options });
+    if (String(url).includes('/account')) return verified();
+    assert.equal(
+      url,
+      'https://api.youversion.com/v1/bibles/1/passages/JHN.3.16?format=text',
+    );
+    assert.equal(options.headers['X-YVP-App-Key'], 'server-secret');
+    return Response.json({
+      id: 'JHN.3.16',
+      content: 'For God so loved the world.',
+      reference: 'John 3:16',
+    });
+  });
+  const response = await worker.fetch(
+    new Request(
+      'https://worker.example.test/api/bible/passage?reference=John%203:16&translationId=KJV',
+      {
+        headers: {
+          Origin: 'https://scripture.example.test',
+          Authorization: 'Bearer valid-user-jwt',
+        },
+      },
+    ),
+    env({ YOUVERSION_API: 'server-secret' }),
+  );
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.text, 'For God so loved the world.');
+  assert.equal(body.translationId, 'KJV');
+  assert.ok(!JSON.stringify(body).includes('server-secret'));
+  assert.equal(calls.length, 2);
+});
 test('worker fails closed when configuration or limit bindings are missing', async () => {
   const worker = createWorker(verified);
   assert.equal(

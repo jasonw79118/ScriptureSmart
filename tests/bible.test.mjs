@@ -6,6 +6,10 @@ import {
   passageURL,
 } from '../src/domain/bible.ts';
 import { retrievePassages } from '../server/ai/scripture.ts';
+import {
+  referenceToUsfm,
+  retrieveYouVersionPassage,
+} from '../server/ai/youversion.ts';
 import { validateRequest } from '../server/ai/validation.ts';
 import { generateWithBinding } from '../server/ai/provider.ts';
 import { parseAIResponse } from '../src/domain/ai.ts';
@@ -133,5 +137,46 @@ test('retrieved passages enter the model with provenance and remain reviewable i
       },
       'general',
     ),
+  );
+});
+
+test('YouVersion passage retrieval converts references and keeps the app key server-side', async () => {
+  assert.equal(referenceToUsfm('John 3:16'), 'JHN.3.16');
+  assert.equal(referenceToUsfm('Romans 8:14-17'), 'ROM.8.14-17');
+  let seen;
+  const passage = await retrieveYouVersionPassage({
+    apiKey: 'secret-app-key',
+    reference: 'John 3:16',
+    translationId: 'KJV',
+    transport: async (url, init) => {
+      seen = { url, init };
+      return Response.json({
+        id: 'JHN.3.16',
+        content: 'For God so loved the world.',
+        reference: 'John 3:16',
+      });
+    },
+  });
+  assert.equal(
+    seen.url,
+    'https://api.youversion.com/v1/bibles/1/passages/JHN.3.16?format=text',
+  );
+  assert.equal(seen.init.headers['X-YVP-App-Key'], 'secret-app-key');
+  assert.equal(seen.init.redirect, 'manual');
+  assert.equal(passage.text, 'For God so loved the world.');
+  assert.equal(passage.translationId, 'KJV');
+  await assert.rejects(
+    retrieveYouVersionPassage({
+      apiKey: '',
+      reference: 'John 3:16',
+      translationId: 'KJV',
+    }),
+  );
+  await assert.rejects(
+    retrieveYouVersionPassage({
+      apiKey: 'secret',
+      reference: 'John 3:16',
+      translationId: 'UNKNOWN',
+    }),
   );
 });

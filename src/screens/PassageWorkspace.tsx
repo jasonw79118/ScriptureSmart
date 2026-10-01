@@ -1,8 +1,10 @@
 import { AssistantPanel, type ContextChoice } from '../ai/AssistantPanel';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Note, TableItem } from '../domain/models';
 import { translations } from '../domain/providers';
 import { Badge, Empty, Heading } from '../components';
+import { getBiblePassage, type BiblePassageResult } from '../ai/bibleClient';
+import { AIError } from '../domain/ai';
 export function PassageWorkspace({
   passage,
   setPassage,
@@ -31,6 +33,15 @@ export function PassageWorkspace({
   );
   const [validation, setValidation] = useState('');
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
+  const [passageTexts, setPassageTexts] = useState<
+    Record<string, BiblePassageResult>
+  >({});
+  const [passageErrors, setPassageErrors] = useState<Record<string, string>>(
+    {},
+  );
+  const [loadingPassages, setLoadingPassages] = useState<
+    Record<string, boolean>
+  >({});
   const noteChoices = (n: Note): ContextChoice[] => [
     {
       id: `note-${n.id}`,
@@ -59,6 +70,45 @@ export function PassageWorkspace({
     'Interpretations',
     'Notes',
   ];
+  useEffect(() => {
+    if (tab !== 'Scripture' && tab !== 'Compare') return;
+    const controllers: AbortController[] = [];
+    const ids = [translation, ...(tab === 'Compare' ? [comparison] : [])];
+    for (const id of ids) {
+      const key = `${id}:${passage}`;
+      if (passageTexts[key] || loadingPassages[key] || passageErrors[key])
+        continue;
+      const controller = new AbortController();
+      controllers.push(controller);
+      setLoadingPassages((current) => ({ ...current, [key]: true }));
+      setPassageErrors((current) => ({ ...current, [key]: '' }));
+      void getBiblePassage(passage, id, controller.signal)
+        .then((result) =>
+          setPassageTexts((current) => ({ ...current, [key]: result })),
+        )
+        .catch((error) =>
+          setPassageErrors((current) => ({
+            ...current,
+            [key]:
+              error instanceof AIError
+                ? error.message
+                : 'Bible text could not be loaded.',
+          })),
+        )
+        .finally(() =>
+          setLoadingPassages((current) => ({ ...current, [key]: false })),
+        );
+    }
+    return () => controllers.forEach((controller) => controller.abort());
+  }, [
+    tab,
+    passage,
+    translation,
+    comparison,
+    passageTexts,
+    loadingPassages,
+    passageErrors,
+  ]);
   return (
     <>
       <Heading
@@ -173,10 +223,42 @@ export function PassageWorkspace({
                       ))}
                     </select>
                   </label>
-                  <Empty title={`Read ${passage} in ${t}`}>
-                    Connect an approved Bible provider to display licensed text
-                    and attribution. No Scripture text has been loaded.
-                  </Empty>
+                  {loadingPassages[`${t}:${passage}`] && (
+                    <p>Loading {t} from YouVersion...</p>
+                  )}
+                  {passageErrors[`${t}:${passage}`] && (
+                    <div role="alert" className="alert">
+                      {passageErrors[`${t}:${passage}`]}
+                    </div>
+                  )}
+                  {passageTexts[`${t}:${passage}`] ? (
+                    <article className="note-card">
+                      <h3>
+                        {passageTexts[`${t}:${passage}`].reference} ({t})
+                      </h3>
+                      <p className="preserve">
+                        {passageTexts[`${t}:${passage}`].text}
+                      </p>
+                      <small>
+                        {passageTexts[`${t}:${passage}`].attribution}{' '}
+                        <a
+                          href={passageTexts[`${t}:${passage}`].sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Open in YouVersion
+                        </a>
+                      </small>
+                    </article>
+                  ) : (
+                    !loadingPassages[`${t}:${passage}`] &&
+                    !passageErrors[`${t}:${passage}`] && (
+                      <Empty title={`Read ${passage} in ${t}`}>
+                        Sign in to load this passage through the connected
+                        YouVersion provider.
+                      </Empty>
+                    )
+                  )}
                 </div>
               ))}
             </div>

@@ -1,5 +1,8 @@
 import { retrievePassages } from './scripture.ts';
-import { retrieveYouVersionPassage } from './youversion.ts';
+import {
+  retrieveYouVersionPassage,
+  youVersionTranslations,
+} from './youversion.ts';
 import { AIError, isRecord, type AIErrorCode } from '../../src/domain/ai.ts';
 import { normalizeReference } from '../../src/domain/bible.ts';
 import { readRequest } from './validation.ts';
@@ -158,9 +161,12 @@ export function createWorker(
       if (origin && !allowed.includes(origin))
         return json({ code: 'forbidden' }, 403);
       if (
-        !['/api/ai/status', '/api/ai/generate', '/api/bible/passage'].includes(
-          path,
-        )
+        ![
+          '/api/ai/status',
+          '/api/ai/generate',
+          '/api/bible/status',
+          '/api/bible/passage',
+        ].includes(path)
       )
         return json({ code: 'invalid' }, 404);
       if (request.method === 'OPTIONS')
@@ -175,6 +181,12 @@ export function createWorker(
         });
       if (path === '/api/ai/status' && request.method === 'GET')
         return json({ available: ready(env), provider: 'scripturesmart-ai' });
+      if (path === '/api/bible/status' && request.method === 'GET')
+        return json({
+          available: ready(env) && !!env.YOUVERSION_API?.trim(),
+          provider: 'youversion',
+          translations: youVersionTranslations,
+        });
       if (path === '/api/bible/passage' && request.method === 'GET') {
         try {
           if (!ready(env)) throw new AIError('setup-required');

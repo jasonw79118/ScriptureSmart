@@ -1,14 +1,37 @@
-import { AIStatusCard } from '../ai/StatusCard';
+﻿import { AIStatusCard } from '../ai/StatusCard';
+import {
+  getBibleProviderStatus,
+  type BibleProviderStatus,
+} from '../ai/bibleClient';
 import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { bibleProviders } from '../domain/providers';
 import { Badge, Heading } from '../components';
+
 export function Connections() {
   const [selected, setSelected] = useState('');
   const [prompt, setPrompt] = useState(
     'Help me study [Bible passage or topic]. Explain the context, distinguish the biblical text from interpretation, and suggest thoughtful discussion questions. Cite sources I can check and clearly identify uncertainty.',
   );
   const [copyStatus, setCopyStatus] = useState('');
+  const [bibleStatus, setBibleStatus] = useState<
+    'checking' | 'ready' | 'unavailable'
+  >('checking');
+  const [youVersion, setYouVersion] = useState<BibleProviderStatus | null>(
+    null,
+  );
   const promptRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void getBibleProviderStatus(controller.signal)
+      .then((status) => {
+        setYouVersion(status);
+        setBibleStatus(status.available ? 'ready' : 'unavailable');
+      })
+      .catch(() => setBibleStatus('unavailable'));
+    return () => controller.abort();
+  }, []);
+
   async function copyPrompt() {
     try {
       await navigator.clipboard.writeText(prompt);
@@ -23,6 +46,7 @@ export function Connections() {
       );
     }
   }
+
   return (
     <>
       <Heading
@@ -112,24 +136,59 @@ export function Connections() {
         <span className="muted">Approved sources & licensing</span>
       </div>
       <div className="connection-grid bible-connections">
-        {bibleProviders.map((provider) => (
-          <section className="panel connection-card" key={provider.id}>
-            <span className="provider-logo">▤</span>
-            <Badge>Planned integration</Badge>
-            <h3>{provider.name}</h3>
-            <p>
-              {provider.capabilities.join(' · ')}
-              <br />
-              Access depends on approved APIs and applicable rights.
+        <section className="panel connection-card">
+          <span className="provider-logo">YV</span>
+          <Badge>
+            {bibleStatus === 'checking'
+              ? 'Checking connection'
+              : bibleStatus === 'ready'
+                ? 'Connected'
+                : 'Needs server setup'}
+          </Badge>
+          <h3>YouVersion</h3>
+          <p>
+            Bible text is retrieved through ScriptureSmart&apos;s secure server
+            connection. The app key stays off member devices.
+          </p>
+          <strong role="status">
+            {bibleStatus === 'checking'
+              ? 'Checking YouVersion...'
+              : bibleStatus === 'ready'
+                ? 'YouVersion passage lookup is available.'
+                : 'YouVersion passage lookup is unavailable.'}
+          </strong>
+          {youVersion?.translations.length ? (
+            <p className="muted">
+              Available translations:{' '}
+              {youVersion.translations
+                .map((translation) => translation.id)
+                .join(', ')}
             </p>
-            <button
-              className="button secondary wide"
-              onClick={() => setSelected(provider.name)}
-            >
-              Connection details →
-            </button>
-          </section>
-        ))}
+          ) : null}
+          <a className="button primary wide" href="#study">
+            Open Bible study
+          </a>
+        </section>
+        {bibleProviders
+          .filter((provider) => provider.id !== 'youversion')
+          .map((provider) => (
+            <section className="panel connection-card" key={provider.id}>
+              <span className="provider-logo">▤</span>
+              <Badge>Planned integration</Badge>
+              <h3>{provider.name}</h3>
+              <p>
+                {provider.capabilities.join(' · ')}
+                <br />
+                Access depends on approved APIs and applicable rights.
+              </p>
+              <button
+                className="button secondary wide"
+                onClick={() => setSelected(provider.name)}
+              >
+                Connection details →
+              </button>
+            </section>
+          ))}
       </div>
       <section className="panel">
         <h2>
@@ -176,6 +235,7 @@ export function Connections() {
     </>
   );
 }
+
 function ConnectionDialog({
   children,
   onClose,

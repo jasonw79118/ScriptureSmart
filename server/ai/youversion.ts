@@ -67,6 +67,17 @@ const bookUsfm: Record<string, string> = {
   Revelation: 'REV',
 };
 
+export const youVersionTranslations = [
+  { id: 'BSB', name: 'Berean Standard Bible' },
+  { id: 'ASV', name: 'American Standard Version' },
+  { id: 'WEBUS', name: 'World English Bible, American English' },
+  { id: 'FBV', name: 'Free Bible Version' },
+  { id: 'LSV', name: 'Literal Standard Version' },
+  { id: 'WMB', name: 'World Messianic Bible' },
+  { id: 'CPDV', name: 'Catholic Public Domain Version' },
+  { id: 'TCENT', name: 'Text-Critical English New Testament' },
+] as const;
+
 const youVersionBibleIds: Record<string, number> = {
   ASV: 12,
   BSB: 3034,

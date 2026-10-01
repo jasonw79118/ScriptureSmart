@@ -205,6 +205,20 @@ test('worker verifies caller with fixed Appwrite endpoint and applies caller-bas
   assert.equal(body.provider, 'scripturesmart-ai');
   assert.ok(!JSON.stringify(body).includes('valid-user-jwt'));
 });
+test('worker reports YouVersion status without exposing the server key', async () => {
+  const response = await createWorker(verified).fetch(
+    new Request('https://worker.example.test/api/bible/status', {
+      headers: { Origin: 'https://scripture.example.test' },
+    }),
+    env({ YOUVERSION_API: 'server-secret' }),
+  );
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.available, true);
+  assert.equal(body.provider, 'youversion');
+  assert.equal(body.translations[0].id, 'BSB');
+  assert.ok(!JSON.stringify(body).includes('server-secret'));
+});
 test('worker proxies YouVersion passages only after Appwrite verification', async () => {
   const calls = [];
   const worker = createWorker(async (url, options) => {

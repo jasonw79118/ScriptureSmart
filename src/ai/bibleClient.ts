@@ -2,6 +2,12 @@ import { AIError, isRecord } from '../domain/ai';
 import { getAIUserToken } from './auth';
 import { account } from '../community/client';
 
+export interface BibleProviderStatus {
+  available: boolean;
+  provider: string;
+  translations: { id: string; name: string }[];
+}
+
 export interface BiblePassageResult {
   reference: string;
   translationId: string;
@@ -58,5 +64,38 @@ export async function getBiblePassage(
     text: body.text,
     attribution: body.attribution,
     sourceUrl: body.sourceUrl,
+  };
+}
+
+export async function getBibleProviderStatus(
+  signal?: AbortSignal,
+): Promise<BibleProviderStatus> {
+  const url = new URL(`${root}/api/bible/status`, window.location.origin);
+  const response = await fetch(url, {
+    credentials: 'omit',
+    signal: AbortSignal.any([
+      ...(signal ? [signal] : []),
+      AbortSignal.timeout(10000),
+    ]),
+  });
+  if (!response.ok) throw new AIError('network');
+  const body: unknown = await response.json();
+  if (
+    !isRecord(body) ||
+    typeof body.available !== 'boolean' ||
+    typeof body.provider !== 'string' ||
+    !Array.isArray(body.translations)
+  )
+    throw new AIError('malformed');
+  const translations = body.translations.filter(
+    (translation): translation is { id: string; name: string } =>
+      isRecord(translation) &&
+      typeof translation.id === 'string' &&
+      typeof translation.name === 'string',
+  );
+  return {
+    available: body.available,
+    provider: body.provider,
+    translations,
   };
 }

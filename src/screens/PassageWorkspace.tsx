@@ -139,18 +139,18 @@ export function PassageWorkspace({
         onSubmit={(e) => {
           e.preventDefault();
           if (
-            !/^[1-3]?\s*[A-Za-z]+(?:\s+[A-Za-z]+)*\s+\d+(?::\d+)?(?:\s*[-â€“]\s*\d+(?::\d+)?)?$/.test(
+            !/^[1-3]?\s*[A-Za-z]+(?:\s+[A-Za-z]+)*\s+\d+(?::\d+)?(?:\s*[-–]\s*\d+(?::\d+)?)?$/.test(
               input.trim(),
             )
           ) {
-            setValidation('Enter a reference such as Ephesians 1:3â€“14.');
+            setValidation('Enter a reference such as Ephesians 1:3–14.');
             return;
           }
           setPassage(input.trim());
           setValidation('');
         }}
       >
-        <span aria-hidden="true">â–¤</span>
+        <span aria-hidden="true">Book</span>
         <label className="sr-only" htmlFor="passage">
           Bible reference
         </label>
@@ -158,10 +158,10 @@ export function PassageWorkspace({
           id="passage"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Enter a passage, e.g. Ephesians 1:3â€“14"
+          placeholder="Enter a passage, e.g. Ephesians 1:3–14"
           required
         />
-        <button className="button primary">Open passage â†’</button>
+        <button className="button primary">Open passage →</button>
       </form>
       {validation && <p role="alert">{validation}</p>}
       <div className="workspace-title">
@@ -174,7 +174,7 @@ export function PassageWorkspace({
           className="button secondary"
           onClick={() => send(passage, 'passage')}
         >
-          Send to The Table â†—
+          Send to The Table ↗
         </button>
       </div>
       <div className="study-desk-layout">
@@ -319,7 +319,7 @@ export function PassageWorkspace({
                   ))}
                 </div>
                 <button className="button secondary" onClick={connect}>
-                  Explore Bible connections â†’
+                  Explore Bible connections →
                 </button>
               </>
             )}
@@ -350,17 +350,17 @@ export function PassageWorkspace({
                   {[
                     [
                       'Early Church',
-                      'Irenaeus Â· Athanasius Â· Augustine Â· John Chrysostom',
+                      'Irenaeus · Athanasius · Augustine · John Chrysostom',
                     ],
                     [
                       'Councils & creeds',
-                      'Council of Nicaea Â· Primary historical sources',
+                      'Council of Nicaea · Primary historical sources',
                     ],
-                    ['Reformation', 'Martin Luther Â· John Calvin'],
+                    ['Reformation', 'Martin Luther · John Calvin'],
                     ['Historical commentators', 'Charles Spurgeon'],
                     [
                       'Modern pastoral & theological voices',
-                      'C. S. Lewis Â· Tim Keller Â· John Piper',
+                      'C. S. Lewis · Tim Keller · John Piper',
                     ],
                   ].map(([title, names]) => (
                     <div className="category" key={title}>
@@ -422,7 +422,7 @@ export function PassageWorkspace({
                   .filter((n) => n.passage === passage)
                   .map((n) => (
                     <article className="note-card" key={n.id}>
-                      <span className="muted">Private Â· This device</span>
+                      <span className="muted">Private · This device</span>
                       <p className="preserve">{n.text}</p>
                       <div className="editor-toolbar">
                         <button
@@ -481,8 +481,8 @@ export function PassageWorkspace({
         </div>
       </div>
       <div className="integrity-note">
-        â—‡ Scripture, historical sources, personal notes, and AI synthesis each
-        keep their own identity.
+        Note Scripture, historical sources, personal notes, and AI synthesis
+        each keep their own identity.
       </div>
     </>
   );

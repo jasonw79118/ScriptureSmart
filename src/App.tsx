@@ -55,12 +55,12 @@ export type Route =
   | 'connections'
   | 'settings';
 const nav: { id: Route; label: string; icon: string }[] = [
-  { id: 'dashboard', label: 'Home', icon: 'âŒ‚' },
-  { id: 'study', label: 'Study', icon: 'â–¤' },
-  { id: 'research', label: 'Explore', icon: 'âŒ•' },
-  { id: 'sermons', label: 'Create', icon: 'âœ' },
-  { id: 'groups', label: 'Groups', icon: 'â™§' },
-  { id: 'library', label: 'Library', icon: 'â–±' },
+  { id: 'dashboard', label: 'Home', icon: 'Home' },
+  { id: 'study', label: 'Study', icon: 'Book' },
+  { id: 'research', label: 'Explore', icon: 'Search' },
+  { id: 'sermons', label: 'Create', icon: 'Write' },
+  { id: 'groups', label: 'Groups', icon: 'Group' },
+  { id: 'library', label: 'Library', icon: 'Library' },
 ];
 const allRoutes: Route[] = [
   ...nav.map((n) => n.id),
@@ -168,7 +168,7 @@ function App() {
     validPreferences,
   );
   const [selectedId, setSelectedId] = useState('');
-  const [passage, setPassage] = useState('Ephesians 1:3â€“14');
+  const [passage, setPassage] = useState('Ephesians 1:3–14');
   const [notice, setNotice] = useState('');
   const [homeQuery, setHomeQuery] = useState('');
   const [studyQuestion, setStudyQuestion] = useState('');
@@ -182,7 +182,7 @@ function App() {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
   useEffect(() => {
-    document.title = `${nav.find((n) => n.id === route)?.label ?? (route === 'onboarding' ? 'Church connection' : 'Discussion Guide')} Â· ScriptureSmart`;
+    document.title = `${nav.find((n) => n.id === route)?.label ?? (route === 'onboarding' ? 'Church connection' : 'Discussion Guide')} · ScriptureSmart`;
   }, [route]);
   function go(next: Route) {
     navigate(next);
@@ -192,7 +192,7 @@ function App() {
     const trimmed = query.trim();
     if (!trimmed) return;
     const referencePattern =
-      /^[1-3]?\s*[A-Za-z]+(?:\s+[A-Za-z]+)*\s+\d+(?::\d+)?(?:\s*[-â€“]\s*\d+(?::\d+)?)?$/;
+      /^[1-3]?\s*[A-Za-z]+(?:\s+[A-Za-z]+)*\s+\d+(?::\d+)?(?:\s*[-–]\s*\d+(?::\d+)?)?$/;
     if (referencePattern.test(trimmed)) {
       setPassage(trimmed);
       setStudyQuestion(`Explain ${trimmed}`);
@@ -281,16 +281,20 @@ function App() {
             onClick={() => openDraft(d)}
           >
             <div className={`document-icon ${d.kind}`}>
-              {d.kind === 'sermon' ? 'â™§' : d.kind === 'study' ? 'â–¤' : 'â˜·'}
+              {d.kind === 'sermon'
+                ? 'Group'
+                : d.kind === 'study'
+                  ? 'Book'
+                  : 'Guide'}
             </div>
             <div className="card-kicker">
-              {labels[d.kind]} {d.sample && <span>Â· Sample</span>}
+              {labels[d.kind]} {d.sample && <span>· Sample</span>}
             </div>
             <h3>{d.title}</h3>
             <p>{d.passage || 'Add a passage'}</p>
             <div className="card-footer">
               <span>Draft</span>
-              <span>Continue writing â†—</span>
+              <span>Continue writing ↗</span>
             </div>
           </button>
         ))}
@@ -335,7 +339,7 @@ function App() {
           Close menu <span aria-hidden="true">&times;</span>
         </button>
         <a className="brand" href="#dashboard">
-          <span className="brand-symbol">â–¥</span>
+          <span className="brand-symbol">SS</span>
           <span>
             Scripture<span className="brand-light">Smart</span>
             <small>YOUR STUDY WORKSPACE</small>
@@ -405,7 +409,7 @@ function App() {
             </span>
             <div>
               {settings.name}
-              <small>Personal account Â· Preview</small>
+              <small>Personal account · Preview</small>
             </div>
           </div>
         </div>
@@ -428,7 +432,7 @@ function App() {
               aria-expanded={menu}
               onClick={() => setMenu(!menu)}
             >
-              â˜°
+              Menu
             </button>
             <span>Workspace</span>
             <span className="slash">/</span>
@@ -461,7 +465,7 @@ function App() {
               </span>
             </a>
             <button className="search-shortcut" onClick={() => go('library')}>
-              âŒ• <span>Find in library</span>
+              Search <span>Find in library</span>
             </button>
             <span className="avatar small">
               {settings.name.charAt(0).toUpperCase()}
@@ -470,7 +474,7 @@ function App() {
         </header>
         <main id="main-content" tabIndex={-1}>
           <div className="preview-banner">
-            <span>â—‡</span> Personal study drafts are local. Open your church
+            <span>Note</span> Personal study drafts are local. Open your church
             workspace for group planning; your edits stay in this browser.
           </div>
           {error && (
@@ -485,7 +489,7 @@ function App() {
                 aria-label="Dismiss notification"
                 onClick={() => setNotice('')}
               >
-                Ã—
+                ×
               </button>
             </div>
           )}
@@ -529,7 +533,7 @@ function App() {
                           onChange={(event) => setHomeQuery(event.target.value)}
                           placeholder="Ask anything about the Bible..."
                         />
-                        <button className="button primary">Study â†’</button>
+                        <button className="button primary">Study →</button>
                       </form>
                       <div
                         className="prompt-pills"
@@ -592,7 +596,7 @@ function App() {
                         key={title as string}
                         onClick={action as () => void}
                       >
-                        <span>âœ¦</span>
+                        <span>✦</span>
                         <strong>{title as string}</strong>
                         <small>{description as string}</small>
                       </button>
@@ -606,7 +610,7 @@ function App() {
                           className="text-button"
                           onClick={() => go('library')}
                         >
-                          View library â†’
+                          View library →
                         </button>
                       </div>
                       {draftCards(
@@ -620,14 +624,12 @@ function App() {
                     <section className="panel editorial-panel">
                       <h2>Recent Passages</h2>
                       <div className="inline-links">
-                        <button onClick={() => go('study')}>
-                          {passage} â†’
-                        </button>
+                        <button onClick={() => go('study')}>{passage} →</button>
                         <button onClick={() => go('research')}>
-                          Saved notes Â· {notes.length} â†’
+                          Saved notes · {notes.length} →
                         </button>
                         <button onClick={() => go('groups')}>
-                          {groupLabel} Â· this week â†’
+                          {groupLabel} · this week →
                         </button>
                       </div>
                     </section>
@@ -637,7 +639,7 @@ function App() {
                       <span className="eyebrow">
                         EXPLORE SCRIPTURE FROM EVERY ANGLE
                       </span>
-                      <h2>A richer view of Godâ€™s Word</h2>
+                      <h2>A richer view of God’s Word</h2>
                     </div>
                     {[
                       'Commentaries',
@@ -728,7 +730,7 @@ function App() {
             </>
           )}
           <footer>
-            <span className="footer-brand">â–¥ ScriptureSmart</span>
+            <span className="footer-brand">SS ScriptureSmart</span>
             <span>Rooted in Scripture. Thoughtful by design.</span>
             <span>Foundation preview</span>
           </footer>

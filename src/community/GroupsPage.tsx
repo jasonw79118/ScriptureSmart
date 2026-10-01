@@ -134,7 +134,7 @@ export function GroupsPage() {
                   </h2>
                   <p>
                     {meeting
-                      ? `${meeting.date} Â· ${meeting.time.slice(0, 5)} Â· ${g.timezone}`
+                      ? `${meeting.date} · ${meeting.time.slice(0, 5)} · ${g.timezone}`
                       : 'A leader can add a date, meal plan, kids plan, and attendance sign-up.'}
                   </p>
                   <div className="editor-toolbar">
@@ -178,14 +178,14 @@ export function GroupsPage() {
                     {posts.find(
                       (p) => p.kind === 'discussion' || p.kind === 'question',
                     )?.text ||
-                      'Add this weekâ€™s discussion question in the Discussion tab.'}
+                      'Add this week’s discussion question in the Discussion tab.'}
                   </p>
                 </section>
                 <section className="overview-card">
                   <span className="eyebrow">MEAL PLAN</span>
                   <h2>{meeting?.meal_theme || 'Meal not set'}</h2>
                   <p>
-                    {mealSlots.length} signup slots Â·{' '}
+                    {mealSlots.length} signup slots ·{' '}
                     {mealSlots.filter((d) => d.assignee_id).length} assigned
                   </p>
                 </section>
@@ -211,7 +211,7 @@ export function GroupsPage() {
                     target="_blank"
                     rel="noreferrer"
                   >
-                    Visit church website â†’
+                    Visit church website →
                   </a>
                 </section>
               </aside>
@@ -312,7 +312,7 @@ function GroupDetails() {
             target="_blank"
             rel="noreferrer"
           >
-            Get directions â†—
+            Get directions ↗
           </a>
         )}
         <small>
@@ -321,7 +321,7 @@ function GroupDetails() {
         </small>
         <h3>Hosts</h3>
         <p>{g.hosts || 'Hosts not set'}</p>
-        <h3>Childrenâ€™s ages</h3>
+        <h3>Children’s ages</h3>
         <p>{g.age_range || 'Not specified'}</p>
         <h3>Group leaders</h3>
         {c.data.members
@@ -369,7 +369,7 @@ function GroupDetails() {
             <Field name="hosts" label="Group hosts" value={g.hosts} />
             <Field
               name="age_range"
-              label="Childrenâ€™s age range"
+              label="Children’s age range"
               value={g.age_range}
             />
             <Field name="location" label="Location name" value={g.location} />
@@ -412,7 +412,7 @@ function GroupDetails() {
                 name="kids_enabled"
                 defaultChecked={g.kids_enabled}
               />
-              Include kidsâ€™ time
+              Include kids’ time
             </label>
             <small>
               Disabling a feature hides its planning area and preserves existing
@@ -431,8 +431,8 @@ function GroupDetails() {
               ? 'Shared meal planning enabled'
               : 'This group does not use meal planning'}
           </p>
-          <p>Kidsâ€™ time: {g.kids_enabled ? 'Enabled' : 'Not enabled'}</p>
-          <p>Your leaders can update this groupâ€™s schedule and practices.</p>
+          <p>Kids’ time: {g.kids_enabled ? 'Enabled' : 'Not enabled'}</p>
+          <p>Your leaders can update this group’s schedule and practices.</p>
         </Panel>
       )}
     </div>
@@ -498,7 +498,7 @@ function MeetingEditor({
           <>
             <Field
               name="meal_theme"
-              label="Main dish (optional â€” plan the menu later)"
+              label="Main dish (optional — plan the menu later)"
               value={meeting?.meal_theme}
             />
             <Field
@@ -512,7 +512,7 @@ function MeetingEditor({
         {c.canGroup('kids') && (
           <Field
             name="kids_plan"
-            label="Kidsâ€™ time plan and supervision"
+            label="Kids’ time plan and supervision"
             type="textarea"
             value={meeting?.kids_plan}
           />
@@ -546,7 +546,7 @@ function GatheringView({ meeting }: { meeting: Gathering }) {
     return (
       <>
         <button className="text-button" onClick={() => setEditing(false)}>
-          â† Back to gathering
+          ← Back to gathering
         </button>
         <MeetingEditor meeting={meeting} onSaved={() => setEditing(false)} />
       </>
@@ -557,7 +557,7 @@ function GatheringView({ meeting }: { meeting: Gathering }) {
         <div>
           <h2>{meeting.title}</h2>
           <p>
-            {meeting.date} Â· {meeting.time.slice(0, 5)} Â· {g.timezone}
+            {meeting.date} · {meeting.time.slice(0, 5)} · {g.timezone}
           </p>
         </div>
         {c.isLeader && (
@@ -592,7 +592,7 @@ function GatheringView({ meeting }: { meeting: Gathering }) {
                     onChange={() => setStatus(s)}
                   />
                   {s === 'going'
-                    ? 'Iâ€™m coming'
+                    ? 'I’m coming'
                     : s === 'maybe'
                       ? 'Maybe'
                       : 'Not coming'}
@@ -634,7 +634,7 @@ function GatheringView({ meeting }: { meeting: Gathering }) {
             )}
             <small>
               Respond once per household. Adults and children are counts only;
-              do not list childrenâ€™s personal details.
+              do not list children’s personal details.
             </small>
             <button className="button primary" disabled={c.busy}>
               Save my attendance
@@ -653,7 +653,7 @@ function GatheringView({ meeting }: { meeting: Gathering }) {
             )}
           </form>
         </Panel>
-        <Panel title="Whoâ€™s gathering">
+        <Panel title="Who’s gathering">
           <div className="attendance-totals">
             <strong>
               {going.reduce((n, a) => n + a.adults + a.kids, 0)}
@@ -684,7 +684,7 @@ function GatheringView({ meeting }: { meeting: Gathering }) {
                       ? 'Not coming'
                       : a.status === 'maybe'
                         ? 'Maybe'
-                        : `${a.adults} adults Â· ${a.kids} kids`}
+                        : `${a.adults} adults · ${a.kids} kids`}
                 </strong>
               </div>
             );
@@ -698,11 +698,11 @@ function GatheringView({ meeting }: { meeting: Gathering }) {
       {c.canGroup('meals') && <MealPlan meeting={meeting} names={names} />}
       {c.canGroup('kids') && (
         <section className="panel gathering-kids">
-          <Badge>Kidsâ€™ time</Badge>
+          <Badge>Kids’ time</Badge>
           <h2>A plan for the little ones.</h2>
           <p className="preserve">
             {meeting.kids_plan ||
-              'No kidsâ€™ time plan yet. Share an idea in the Kidsâ€™ time tab or ask your leader about supervision.'}
+              'No kids’ time plan yet. Share an idea in the Kids’ time tab or ask your leader about supervision.'}
           </p>
         </section>
       )}
@@ -731,7 +731,7 @@ function MealPlan({
       <div className="section-heading">
         <div>
           <Badge>Shared meal</Badge>
-          <h2>{meeting.meal_theme || 'Letâ€™s plan dinner together.'}</h2>
+          <h2>{meeting.meal_theme || 'Let’s plan dinner together.'}</h2>
         </div>
         <span>
           {dishes.filter((d) => d.assignee_id && !absent(d.assignee_id)).length}{' '}
@@ -760,7 +760,7 @@ function MealPlan({
             </Badge>
             {absent(d.assignee_id) && (
               <p className="dish-warning">
-                Needs reassignment Â· member is not coming
+                Needs reassignment · member is not coming
               </p>
             )}
             {!d.assignee_id && (
@@ -769,7 +769,7 @@ function MealPlan({
                 disabled={c.busy || absent(c.userId)}
                 onClick={() => void c.assignDish(d.id, c.userId)}
               >
-                Iâ€™ll bring this
+                I’ll bring this
               </button>
             )}
             {d.assignee_id === c.userId && (
@@ -800,7 +800,7 @@ function MealPlan({
                       disabled={absent(m.user_id)}
                     >
                       {m.display_name}
-                      {absent(m.user_id) ? ' Â· Not coming' : ''}
+                      {absent(m.user_id) ? ' · Not coming' : ''}
                     </option>
                   ))}
                 </select>
@@ -874,7 +874,7 @@ function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
       <Panel
         title={
           kind === 'kids'
-            ? 'Share a kidsâ€™ time idea'
+            ? 'Share a kids’ time idea'
             : 'Bring your voice to the discussion'
         }
       >
@@ -929,7 +929,7 @@ function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
         .map((p) => (
           <article className="panel table-post" key={p.id}>
             <div className="section-heading">
-              <Badge>{p.kind} Â· User contribution</Badge>
+              <Badge>{p.kind} · User contribution</Badge>
               <span>{name(p.author_id)}</span>
             </div>
             <p className="preserve">{p.text}</p>
@@ -954,7 +954,7 @@ function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
                 aria-label={`Reply to ${p.text}`}
                 required
                 maxLength={10000}
-                placeholder="Add a thoughtful replyâ€¦"
+                placeholder="Add a thoughtful reply…"
                 value={replies[p.id] ?? ''}
                 onChange={(e) =>
                   setReplies({ ...replies, [p.id]: e.target.value })
@@ -1038,7 +1038,7 @@ function Members() {
               <strong>Invitation code</strong>
               <p className="invite-code">{code}</p>
               <p>
-                Share your siteâ€™s Member login URL and this code. Expires in
+                Share your site’s Member login URL and this code. Expires in
                 seven days.
               </p>
             </div>

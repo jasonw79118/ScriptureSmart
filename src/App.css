@@ -2594,3 +2594,94 @@ main {
     letter-spacing: 0.16em;
   }
 }
+
+/* Mockup-derived imagery assets */
+.home-study-hero {
+  background:
+    linear-gradient(180deg, rgba(255, 248, 230, 0.16), rgba(32, 63, 49, 0.08)),
+    url('/ScriptureSmart/mockup-assets/home-hero.jpg') center / cover no-repeat;
+  color: #12382a;
+}
+.home-study-hero h1 {
+  color: #12382a;
+  text-shadow: 0 1px 22px rgba(255, 248, 230, 0.88);
+}
+.home-study-hero p {
+  color: #314637;
+  text-shadow: 0 1px 16px rgba(255, 248, 230, 0.8);
+}
+.pathway-card::before {
+  background: url('/ScriptureSmart/mockup-assets/home-study.jpg') center / cover
+    no-repeat;
+}
+.pathway-card:nth-child(2)::before {
+  background: url('/ScriptureSmart/mockup-assets/home-teach.jpg') center / cover
+    no-repeat;
+}
+.pathway-card:nth-child(3)::before {
+  background: url('/ScriptureSmart/mockup-assets/home-explore.jpg') center /
+    cover no-repeat;
+}
+.pathway-card:nth-child(4)::before {
+  background: url('/ScriptureSmart/mockup-assets/home-together.jpg') center /
+    cover no-repeat;
+}
+.study-image {
+  background:
+    linear-gradient(90deg, rgba(255, 250, 240, 0.18), rgba(255, 250, 240, 0.4)),
+    url('/ScriptureSmart/mockup-assets/study-hero.jpg') center / cover no-repeat;
+}
+.library-image {
+  background:
+    linear-gradient(90deg, rgba(23, 63, 48, 0.18), rgba(255, 250, 240, 0.2)),
+    url('/ScriptureSmart/mockup-assets/explore-hero.jpg') center / cover
+      no-repeat;
+}
+.teaching-hero {
+  background:
+    linear-gradient(90deg, rgba(255, 250, 240, 0.92), rgba(255, 250, 240, 0.2)),
+    url('/ScriptureSmart/mockup-assets/sermon-hero.jpg') center / cover
+      no-repeat;
+}
+.group-image {
+  background:
+    linear-gradient(90deg, rgba(9, 31, 23, 0.62), rgba(9, 31, 23, 0.12)),
+    url('/ScriptureSmart/mockup-assets/group-hero.jpg') center / cover no-repeat;
+}
+.library-hero h1,
+.studio-hero h1,
+.group-hero h1,
+.group-landing-empty h1 {
+  text-shadow: 0 1px 18px rgba(0, 0, 0, 0.28);
+}
+.teaching-hero h1,
+.teaching-hero p,
+.teaching-hero .eyebrow {
+  color: var(--ss-ink);
+  text-shadow: none;
+}
+.resource-collection-card:nth-child(1)::before,
+.resource-collection-card:nth-child(5)::before {
+  background: url('/ScriptureSmart/mockup-assets/resource-scripture.jpg')
+    center / cover no-repeat;
+}
+.resource-collection-card:nth-child(2)::before {
+  background: url('/ScriptureSmart/mockup-assets/resource-history.jpg') center /
+    cover no-repeat;
+}
+.resource-collection-card:nth-child(3)::before {
+  background: url('/ScriptureSmart/mockup-assets/resource-early.jpg') center /
+    cover no-repeat;
+}
+.resource-collection-card:nth-child(4)::before {
+  background:
+    linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.18)),
+    url('/ScriptureSmart/mockup-assets/home-explore.jpg') center / cover
+      no-repeat;
+}
+.church-source-card {
+  background:
+    linear-gradient(90deg, rgba(18, 54, 39, 0.92), rgba(18, 54, 39, 0.18)),
+    url('/ScriptureSmart/mockup-assets/church-series.jpg') center / cover
+      no-repeat;
+}

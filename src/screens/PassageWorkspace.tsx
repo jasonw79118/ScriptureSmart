@@ -1,4 +1,4 @@
-import { AssistantPanel, type ContextChoice } from '../ai/AssistantPanel';
+﻿import { AssistantPanel, type ContextChoice } from '../ai/AssistantPanel';
 import { useEffect, useState } from 'react';
 import type { Note, TableItem } from '../domain/models';
 import {
@@ -138,18 +138,18 @@ export function PassageWorkspace({
         onSubmit={(e) => {
           e.preventDefault();
           if (
-            !/^[1-3]?\s*[A-Za-z]+(?:\s+[A-Za-z]+)*\s+\d+(?::\d+)?(?:\s*[-–]\s*\d+(?::\d+)?)?$/.test(
+            !/^[1-3]?\s*[A-Za-z]+(?:\s+[A-Za-z]+)*\s+\d+(?::\d+)?(?:\s*[-â€“]\s*\d+(?::\d+)?)?$/.test(
               input.trim(),
             )
           ) {
-            setValidation('Enter a reference such as Ephesians 1:3–14.');
+            setValidation('Enter a reference such as Ephesians 1:3â€“14.');
             return;
           }
           setPassage(input.trim());
           setValidation('');
         }}
       >
-        <span aria-hidden="true">▤</span>
+        <span aria-hidden="true">â–¤</span>
         <label className="sr-only" htmlFor="passage">
           Bible reference
         </label>
@@ -157,10 +157,10 @@ export function PassageWorkspace({
           id="passage"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Enter a passage, e.g. Ephesians 1:3–14"
+          placeholder="Enter a passage, e.g. Ephesians 1:3â€“14"
           required
         />
-        <button className="button primary">Open passage →</button>
+        <button className="button primary">Open passage â†’</button>
       </form>
       {validation && <p role="alert">{validation}</p>}
       <div className="workspace-title">
@@ -172,7 +172,7 @@ export function PassageWorkspace({
           className="button secondary"
           onClick={() => send(passage, 'passage')}
         >
-          Send to The Table ↗
+          Send to The Table â†—
         </button>
       </div>
       <div className="study-desk-layout">
@@ -223,14 +223,26 @@ export function PassageWorkspace({
           }
         />
         <div className="study-reader">
-          <div className="tabs" aria-label="Passage tools">
+          <div
+            className="study-resource-rows"
+            aria-label="Passage study sections"
+          >
             {tabs.map((t) => (
               <button
-                aria-pressed={t === tab}
+                className={t === tab ? 'active' : ''}
                 key={t}
                 onClick={() => setTab(t)}
               >
-                {t}
+                <span>{t}</span>
+                <small>
+                  {t === 'Scripture'
+                    ? 'Read the passage'
+                    : t === 'Compare'
+                      ? 'Parallel translations'
+                      : t === 'Notes'
+                        ? 'Write and review observations'
+                        : 'Open study resources'}
+                </small>
               </button>
             ))}
           </div>
@@ -305,7 +317,7 @@ export function PassageWorkspace({
                   ))}
                 </div>
                 <button className="button secondary" onClick={connect}>
-                  Explore Bible connections →
+                  Explore Bible connections â†’
                 </button>
               </>
             )}
@@ -336,17 +348,17 @@ export function PassageWorkspace({
                   {[
                     [
                       'Early Church',
-                      'Irenaeus · Athanasius · Augustine · John Chrysostom',
+                      'Irenaeus Â· Athanasius Â· Augustine Â· John Chrysostom',
                     ],
                     [
                       'Councils & creeds',
-                      'Council of Nicaea · Primary historical sources',
+                      'Council of Nicaea Â· Primary historical sources',
                     ],
-                    ['Reformation', 'Martin Luther · John Calvin'],
+                    ['Reformation', 'Martin Luther Â· John Calvin'],
                     ['Historical commentators', 'Charles Spurgeon'],
                     [
                       'Modern pastoral & theological voices',
-                      'C. S. Lewis · Tim Keller · John Piper',
+                      'C. S. Lewis Â· Tim Keller Â· John Piper',
                     ],
                   ].map(([title, names]) => (
                     <div className="category" key={title}>
@@ -408,7 +420,7 @@ export function PassageWorkspace({
                   .filter((n) => n.passage === passage)
                   .map((n) => (
                     <article className="note-card" key={n.id}>
-                      <span className="muted">Private · This device</span>
+                      <span className="muted">Private Â· This device</span>
                       <p className="preserve">{n.text}</p>
                       <div className="editor-toolbar">
                         <button
@@ -467,7 +479,7 @@ export function PassageWorkspace({
         </div>
       </div>
       <div className="integrity-note">
-        ◇ Scripture, historical sources, personal notes, and AI synthesis each
+        â—‡ Scripture, historical sources, personal notes, and AI synthesis each
         keep their own identity.
       </div>
     </>

@@ -1,4 +1,4 @@
-import { AccessControls } from './AccessControls';
+﻿import { AccessControls } from './AccessControls';
 import { DirectoryEditor } from './DirectoryEditor';
 import { formValues } from './forms';
 import {
@@ -8,12 +8,12 @@ import {
 } from './MealPlanning';
 import { useState } from 'react';
 import { useCommunity } from './CommunityContext';
-import { Badge, Heading } from '../components';
+import { Badge } from '../components';
 import { ChurchSwitcher, CommunityStatus, Field, Panel } from './ChurchPage';
 import type { Gathering, Contribution } from './models';
 export function GroupsPage() {
   const c = useCommunity();
-  const [tab, setTab] = useState('Gatherings');
+  const [tab, setTab] = useState('Overview');
   const [selectedMeeting, setSelectedMeeting] = useState('');
   const [newMeeting, setNewMeeting] = useState(false);
   const g = c.group;
@@ -23,164 +23,244 @@ export function GroupsPage() {
       (a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time),
     );
   const meeting = meetings.find((m) => m.id === selectedMeeting) ?? meetings[0];
+  const roster = c.data.members.filter((m) => m.group_id === g?.id);
+  const leaders = roster.filter((m) => m.role === 'leader');
+  const posts = c.data.contributions.filter((p) => p.group_id === g?.id);
+  const mealSlots = meeting
+    ? c.data.dishes.filter((d) => d.meeting_id === meeting.id)
+    : [];
+  const churchUrl = 'https://www.redeemerchristianchurch.com/';
+
   return (
     <>
-      <Heading
-        title={c.church?.group_label_plural ?? 'Your church community'}
-        subtitle={
-          c.church
-            ? `${c.church.name} · ${c.church.city}`
-            : 'Sign in to see the groups you belong to.'
-        }
-      />
       <CommunityStatus />
-      <ChurchSwitcher />
-      <p>
-        <a href="#find-group">Find a group that fits your household ?</a>
-      </p>
       {!g ? (
-        <div className="panel">
-          <h2>
+        <section className="group-landing-empty image-hero group-image">
+          <span className="eyebrow">GROUPS</span>
+          <h1>
             {c.configured && !c.session
               ? 'Your group is waiting.'
-              : 'No groups yet.'}
-          </h2>
+              : 'Find a place to study together.'}
+          </h1>
           <p>
-            Join with an invitation from your leader, or create a group from
-            your church workspace.
+            Join with an invitation from your leader, find a Gospel Community,
+            or create a group from your church workspace.
           </p>
-          <a className="button primary" href="#member-login">
-            Member login / join group
-          </a>{' '}
-          <a className="button secondary" href="#church">
-            Church workspace
-          </a>
-        </div>
+          <div className="editor-toolbar">
+            <a className="button primary" href="#member-login">
+              Member login / join group
+            </a>
+            <a className="button secondary" href="#find-group">
+              Find a group
+            </a>
+          </div>
+        </section>
       ) : (
-        <>
-          <div
-            className="community-hero"
-            style={{ borderTopColor: c.church?.accent }}
-          >
+        <div className="group-experience">
+          <section className="group-hero image-hero group-image">
             <div>
-              <Badge>{c.church?.group_label}</Badge>
-              <h2>{g.name}</h2>
-              <p>{g.description || c.church?.welcome}</p>
-              <div className="group-facts">
-                <span>◷ {g.rhythm || 'Meeting time to be added'}</span>
-                <span>⌖ {g.location || 'Location to be added'}</span>
+              <Badge>{c.church?.group_label ?? 'Gospel Community'}</Badge>
+              <h1>{g.name}</h1>
+              <p>
+                {g.description ||
+                  c.church?.welcome ||
+                  'A community for Scripture, prayer, meals, kids, and shared life.'}
+              </p>
+              <div className="group-hero-facts">
+                <span>{roster.length} members</span>
+                <span>
+                  Leaders:{' '}
+                  {leaders.map((m) => m.display_name).join(', ') ||
+                    'To be added'}
+                </span>
+                <span>{g.rhythm || 'Meeting time to be added'}</span>
+                <span>{g.location || 'Location to be added'}</span>
               </div>
             </div>
-            <label>
-              My groups
-              <select
-                aria-label="My groups"
-                value={g.id}
-                onChange={(e) => {
-                  c.setSelectedGroup(e.target.value);
-                  setSelectedMeeting('');
-                }}
+            <aside className="church-identity-card">
+              <a
+                className="church-avatar-link"
+                href={churchUrl}
+                target="_blank"
+                rel="noreferrer"
+                title={`Visit ${c.church?.name ?? 'Redeemer Christian Church'} website`}
               >
-                {c.groups.map((group) => (
-                  <option key={group.id} value={group.id}>
-                    {group.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div className="tabs" aria-label="Group sections">
+                <span className="church-avatar">
+                  {(c.church?.name ?? 'Redeemer').charAt(0)}
+                </span>
+                <strong>{c.church?.name ?? 'Redeemer Christian Church'}</strong>
+              </a>
+              <small>{c.church?.city ?? 'Amarillo, TX'}</small>
+              <ChurchSwitcher />
+            </aside>
+          </section>
+          <nav className="group-section-tabs" aria-label="Group sections">
             {[
-              'Gatherings',
+              'Overview',
               ...(c.canGroup('discussion') ? ['Discussion'] : []),
-              ...(c.canGroup('kids') ? ['Kids’ time'] : []),
-              ...(c.canGroup('meals') ? ['Food needs'] : []),
+              'Prayer Requests',
+              ...(c.canGroup('meals') ? ['Meals'] : []),
+              ...(c.canGroup('kids') ? ['Kids'] : []),
+              'Resources',
               'Members',
-              'Group details',
-            ].map((t) => (
+              'Settings',
+            ].map((name) => (
               <button
-                key={t}
-                aria-pressed={tab === t}
-                onClick={() => setTab(t)}
+                key={name}
+                aria-pressed={tab === name}
+                onClick={() => setTab(name)}
               >
-                {t}
+                {name}
               </button>
             ))}
-          </div>
-          {tab === 'Gatherings' && (
-            <>
-              <div className="editor-toolbar">
-                {meetings.length > 0 && (
-                  <label className="meeting-select">
-                    Gathering
-                    <select
-                      aria-label="Gathering"
-                      value={meeting?.id ?? ''}
-                      onChange={(e) => {
-                        setSelectedMeeting(e.target.value);
-                        setNewMeeting(false);
-                      }}
-                    >
-                      {meetings.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.date} · {m.title}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-                {c.isLeader && (
-                  <button
-                    className="button primary"
-                    onClick={() => setNewMeeting(!newMeeting)}
-                  >
-                    {newMeeting ? 'Cancel new gathering' : 'Plan a gathering'}
-                  </button>
-                )}
-              </div>
-              {newMeeting && (
-                <MeetingEditor
-                  onSaved={(id) => {
-                    setNewMeeting(false);
-                    setSelectedMeeting(id);
-                  }}
-                />
-              )}
-              {!meeting && !newMeeting && (
-                <div className="empty">
-                  <h2>Make room for your next gathering.</h2>
+          </nav>
+
+          {tab === 'Overview' && (
+            <div className="group-overview-layout">
+              <main>
+                <section className="overview-card next-meeting-card">
+                  <span className="eyebrow">NEXT MEETING</span>
+                  <h2>
+                    {meeting?.title ?? 'Make room for your next gathering.'}
+                  </h2>
                   <p>
-                    A leader can add a date and time, meal plan, and kids’
-                    activities. Each gathering gets its own attendance and dish
-                    sign-ups.
+                    {meeting
+                      ? `${meeting.date} Â· ${meeting.time.slice(0, 5)} Â· ${g.timezone}`
+                      : 'A leader can add a date, meal plan, kids plan, and attendance sign-up.'}
                   </p>
-                </div>
-              )}
-              {meeting && !newMeeting && (
-                <GatheringView key={meeting.id} meeting={meeting} />
-              )}
-            </>
+                  <div className="editor-toolbar">
+                    {meeting && (
+                      <button
+                        className="button primary"
+                        onClick={() => setTab('Meals')}
+                      >
+                        Plan this week
+                      </button>
+                    )}
+                    {c.isLeader && (
+                      <button
+                        className="button secondary"
+                        onClick={() => setNewMeeting(!newMeeting)}
+                      >
+                        {newMeeting
+                          ? 'Cancel new gathering'
+                          : 'Plan a gathering'}
+                      </button>
+                    )}
+                  </div>
+                </section>
+                {newMeeting && (
+                  <MeetingEditor
+                    onSaved={(id) => {
+                      setNewMeeting(false);
+                      setSelectedMeeting(id);
+                    }}
+                  />
+                )}
+                {meeting && !newMeeting && (
+                  <GatheringView key={meeting.id} meeting={meeting} />
+                )}
+              </main>
+              <aside className="group-side-panel">
+                <section className="overview-card">
+                  <span className="eyebrow">CURRENT STUDY FOCUS</span>
+                  <h2>{meeting?.title || 'Scripture and shared life'}</h2>
+                  <p>
+                    {posts.find(
+                      (p) => p.kind === 'discussion' || p.kind === 'question',
+                    )?.text ||
+                      'Add this weekâ€™s discussion question in the Discussion tab.'}
+                  </p>
+                </section>
+                <section className="overview-card">
+                  <span className="eyebrow">MEAL PLAN</span>
+                  <h2>{meeting?.meal_theme || 'Meal not set'}</h2>
+                  <p>
+                    {mealSlots.length} signup slots Â·{' '}
+                    {mealSlots.filter((d) => d.assignee_id).length} assigned
+                  </p>
+                </section>
+                <section className="overview-card">
+                  <span className="eyebrow">KIDS / CHILDCARE</span>
+                  <h2>{g.age_range || 'Ages 0-14'}</h2>
+                  <p>
+                    {meeting?.kids_plan || 'Kids plan has not been added yet.'}
+                  </p>
+                </section>
+                <section className="overview-card church-source-card">
+                  <span className="eyebrow">
+                    FROM {c.church?.name ?? 'REDEEMER CHRISTIAN CHURCH'}
+                  </span>
+                  <h2>Church website</h2>
+                  <p>
+                    Church updates can appear here when a reliable website
+                    source or approved integration is connected.
+                  </p>
+                  <a
+                    className="text-button"
+                    href={churchUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Visit church website â†’
+                  </a>
+                </section>
+              </aside>
+            </div>
           )}
+
           {tab === 'Discussion' && c.canGroup('discussion') && (
             <Conversation kind="discussion" />
           )}
-          {tab === 'Kids’ time' && g.kids_enabled && (
+          {tab === 'Prayer Requests' && <Conversation kind="discussion" />}
+          {tab === 'Meals' && c.canGroup('meals') && (
             <>
-              <div className="subtle-box">
-                <strong>Ideas for time with kids</strong>
+              {meeting ? (
+                <MealPlan
+                  meeting={meeting}
+                  names={(id) =>
+                    roster.find((m) => m.user_id === id)?.display_name ??
+                    'Group member'
+                  }
+                />
+              ) : (
+                <p>No meeting selected.</p>
+              )}
+              <DietaryPreferences />
+            </>
+          )}
+          {tab === 'Kids' && g.kids_enabled && (
+            <>
+              <section className="overview-card">
+                <span className="eyebrow">KIDS PLANNING</span>
+                <h2>Activities, supplies, supervision</h2>
                 <p>
-                  For ages 0–3, offer supervised play and a short song. Ages 4–7
-                  can retell a story or draw a scene. Ages 8–14 can discuss a
-                  question or plan a small service activity. These are suggested
-                  activities; leaders should choose age-appropriate plans and
-                  supervision.
+                  Expected children, activities, and important notes remain
+                  visible only within existing group permissions.
                 </p>
-              </div>
+              </section>
               <Conversation kind="kids" />
             </>
           )}
-          {tab === 'Food needs' && c.canGroup('meals') && (
-            <DietaryPreferences />
+          {tab === 'Resources' && (
+            <section className="resource-section-grid">
+              {[
+                'Current study guide',
+                'Sermon link',
+                'Discussion questions',
+                'Group documents',
+              ].map((item) => (
+                <article className="resource-collection-card" key={item}>
+                  <span className="eyebrow">GROUP RESOURCE</span>
+                  <h2>{item}</h2>
+                  <p>
+                    Resource upload and church integrations are planned; no
+                    files are being simulated.
+                  </p>
+                  <Badge>Planned</Badge>
+                </article>
+              ))}
+            </section>
           )}
           {tab === 'Members' && (
             <>
@@ -188,13 +268,13 @@ export function GroupsPage() {
               {c.isLeader && <AccessControls scope="group" />}
             </>
           )}
-          {tab === 'Group details' && (
+          {tab === 'Settings' && (
             <>
               <GroupDetails />
               {c.isLeader && <DirectoryEditor key={g.id} />}
             </>
           )}
-        </>
+        </div>
       )}
     </>
   );
@@ -223,7 +303,7 @@ function GroupDetails() {
             target="_blank"
             rel="noreferrer"
           >
-            Get directions ↗
+            Get directions â†—
           </a>
         )}
         <small>
@@ -232,7 +312,7 @@ function GroupDetails() {
         </small>
         <h3>Hosts</h3>
         <p>{g.hosts || 'Hosts not set'}</p>
-        <h3>Children’s ages</h3>
+        <h3>Childrenâ€™s ages</h3>
         <p>{g.age_range || 'Not specified'}</p>
         <h3>Group leaders</h3>
         {c.data.members
@@ -280,7 +360,7 @@ function GroupDetails() {
             <Field name="hosts" label="Group hosts" value={g.hosts} />
             <Field
               name="age_range"
-              label="Children’s age range"
+              label="Childrenâ€™s age range"
               value={g.age_range}
             />
             <Field name="location" label="Location name" value={g.location} />
@@ -323,7 +403,7 @@ function GroupDetails() {
                 name="kids_enabled"
                 defaultChecked={g.kids_enabled}
               />
-              Include kids’ time
+              Include kidsâ€™ time
             </label>
             <small>
               Disabling a feature hides its planning area and preserves existing
@@ -342,8 +422,8 @@ function GroupDetails() {
               ? 'Shared meal planning enabled'
               : 'This group does not use meal planning'}
           </p>
-          <p>Kids’ time: {g.kids_enabled ? 'Enabled' : 'Not enabled'}</p>
-          <p>Your leaders can update this group’s schedule and practices.</p>
+          <p>Kidsâ€™ time: {g.kids_enabled ? 'Enabled' : 'Not enabled'}</p>
+          <p>Your leaders can update this groupâ€™s schedule and practices.</p>
         </Panel>
       )}
     </div>
@@ -409,7 +489,7 @@ function MeetingEditor({
           <>
             <Field
               name="meal_theme"
-              label="Main dish (optional — plan the menu later)"
+              label="Main dish (optional â€” plan the menu later)"
               value={meeting?.meal_theme}
             />
             <Field
@@ -423,7 +503,7 @@ function MeetingEditor({
         {c.canGroup('kids') && (
           <Field
             name="kids_plan"
-            label="Kids’ time plan and supervision"
+            label="Kidsâ€™ time plan and supervision"
             type="textarea"
             value={meeting?.kids_plan}
           />
@@ -457,7 +537,7 @@ function GatheringView({ meeting }: { meeting: Gathering }) {
     return (
       <>
         <button className="text-button" onClick={() => setEditing(false)}>
-          ← Back to gathering
+          â† Back to gathering
         </button>
         <MeetingEditor meeting={meeting} onSaved={() => setEditing(false)} />
       </>
@@ -468,7 +548,7 @@ function GatheringView({ meeting }: { meeting: Gathering }) {
         <div>
           <h2>{meeting.title}</h2>
           <p>
-            {meeting.date} · {meeting.time.slice(0, 5)} · {g.timezone}
+            {meeting.date} Â· {meeting.time.slice(0, 5)} Â· {g.timezone}
           </p>
         </div>
         {c.isLeader && (
@@ -503,7 +583,7 @@ function GatheringView({ meeting }: { meeting: Gathering }) {
                     onChange={() => setStatus(s)}
                   />
                   {s === 'going'
-                    ? 'I’m coming'
+                    ? 'Iâ€™m coming'
                     : s === 'maybe'
                       ? 'Maybe'
                       : 'Not coming'}
@@ -545,7 +625,7 @@ function GatheringView({ meeting }: { meeting: Gathering }) {
             )}
             <small>
               Respond once per household. Adults and children are counts only;
-              do not list children’s personal details.
+              do not list childrenâ€™s personal details.
             </small>
             <button className="button primary" disabled={c.busy}>
               Save my attendance
@@ -564,7 +644,7 @@ function GatheringView({ meeting }: { meeting: Gathering }) {
             )}
           </form>
         </Panel>
-        <Panel title="Who’s gathering">
+        <Panel title="Whoâ€™s gathering">
           <div className="attendance-totals">
             <strong>
               {going.reduce((n, a) => n + a.adults + a.kids, 0)}
@@ -595,7 +675,7 @@ function GatheringView({ meeting }: { meeting: Gathering }) {
                       ? 'Not coming'
                       : a.status === 'maybe'
                         ? 'Maybe'
-                        : `${a.adults} adults · ${a.kids} kids`}
+                        : `${a.adults} adults Â· ${a.kids} kids`}
                 </strong>
               </div>
             );
@@ -609,11 +689,11 @@ function GatheringView({ meeting }: { meeting: Gathering }) {
       {c.canGroup('meals') && <MealPlan meeting={meeting} names={names} />}
       {c.canGroup('kids') && (
         <section className="panel gathering-kids">
-          <Badge>Kids’ time</Badge>
+          <Badge>Kidsâ€™ time</Badge>
           <h2>A plan for the little ones.</h2>
           <p className="preserve">
             {meeting.kids_plan ||
-              'No kids’ time plan yet. Share an idea in the Kids’ time tab or ask your leader about supervision.'}
+              'No kidsâ€™ time plan yet. Share an idea in the Kidsâ€™ time tab or ask your leader about supervision.'}
           </p>
         </section>
       )}
@@ -642,7 +722,7 @@ function MealPlan({
       <div className="section-heading">
         <div>
           <Badge>Shared meal</Badge>
-          <h2>{meeting.meal_theme || 'Let’s plan dinner together.'}</h2>
+          <h2>{meeting.meal_theme || 'Letâ€™s plan dinner together.'}</h2>
         </div>
         <span>
           {dishes.filter((d) => d.assignee_id && !absent(d.assignee_id)).length}{' '}
@@ -671,7 +751,7 @@ function MealPlan({
             </Badge>
             {absent(d.assignee_id) && (
               <p className="dish-warning">
-                Needs reassignment · member is not coming
+                Needs reassignment Â· member is not coming
               </p>
             )}
             {!d.assignee_id && (
@@ -680,7 +760,7 @@ function MealPlan({
                 disabled={c.busy || absent(c.userId)}
                 onClick={() => void c.assignDish(d.id, c.userId)}
               >
-                I’ll bring this
+                Iâ€™ll bring this
               </button>
             )}
             {d.assignee_id === c.userId && (
@@ -711,7 +791,7 @@ function MealPlan({
                       disabled={absent(m.user_id)}
                     >
                       {m.display_name}
-                      {absent(m.user_id) ? ' · Not coming' : ''}
+                      {absent(m.user_id) ? ' Â· Not coming' : ''}
                     </option>
                   ))}
                 </select>
@@ -785,7 +865,7 @@ function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
       <Panel
         title={
           kind === 'kids'
-            ? 'Share a kids’ time idea'
+            ? 'Share a kidsâ€™ time idea'
             : 'Bring your voice to the discussion'
         }
       >
@@ -840,7 +920,7 @@ function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
         .map((p) => (
           <article className="panel table-post" key={p.id}>
             <div className="section-heading">
-              <Badge>{p.kind} · User contribution</Badge>
+              <Badge>{p.kind} Â· User contribution</Badge>
               <span>{name(p.author_id)}</span>
             </div>
             <p className="preserve">{p.text}</p>
@@ -865,7 +945,7 @@ function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
                 aria-label={`Reply to ${p.text}`}
                 required
                 maxLength={10000}
-                placeholder="Add a thoughtful reply…"
+                placeholder="Add a thoughtful replyâ€¦"
                 value={replies[p.id] ?? ''}
                 onChange={(e) =>
                   setReplies({ ...replies, [p.id]: e.target.value })
@@ -949,7 +1029,7 @@ function Members() {
               <strong>Invitation code</strong>
               <p className="invite-code">{code}</p>
               <p>
-                Share your site’s Member login URL and this code. Expires in
+                Share your siteâ€™s Member login URL and this code. Expires in
                 seven days.
               </p>
             </div>

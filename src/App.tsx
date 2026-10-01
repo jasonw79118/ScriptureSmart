@@ -91,8 +91,8 @@ function NavGlyph({ name }: { name: string }) {
     Book: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 0 4 22z" /><path d="M4 5.5v14A2.5 2.5 0 0 1 6.5 17H20" /></>,
     Search: <><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 5 5" /><path d="M8 11h5M10.5 8.5v5" /></>,
     Write: <><path d="m4 16.5-.9 4.4 4.4-.9L20 7.5 16.5 4z" /><path d="m14.8 5.7 3.5 3.5" /></>,
-    Group: <><circle cx="9" cy="8" r="3" /><path d="M3 20c0-3.2 2.6-5.5 6-5.5s6 2.3 6 5.5M17 5.5a3 3 0 0 1 0 5.8M18 14.7c2.1.6 3.2 2.4 3.2 4.8" /></>,
-    Library: <><path d="M4 4h4v16H4zM10 4h4v16h-4zM17 5l3.5 14M17 5l3.8-1" /></>,
+    Group: <><circle cx="8.5" cy="8" r="3" /><path d="M2.5 20c0-3.4 2.5-5.7 6-5.7s6 2.3 6 5.7" /><path d="M16.2 5.6a3 3 0 0 1 0 5.7M17 14.5c2.7.7 4.2 2.6 4.2 5.5" /></>,
+    Library: <><path d="M3.5 6.5 7.5 5v14l-4 1.5zM10 4h4v16h-4zM16.5 5.5 20.5 4v14l-4 1.5z" /><path d="M4.5 9.2 6.5 8.5M17.5 8 19.5 7.3" /></>,
     More: <><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></>,
   };
   return <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">{paths[name] ?? paths.Book}</svg>;
@@ -355,9 +355,10 @@ function App() {
           Close menu <span aria-hidden="true">&times;</span>
         </button>
         <a className="brand" href="#dashboard" aria-label="ScriptureSmart home">
-          <svg className="brand-symbol" viewBox="0 0 52 46" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 7c8-2 14 0 21 5 7-5 13-7 21-5v31c-8-2-14 0-21 5-7-5-13-7-21-5z" />
-            <path d="M26 12v31M11 13v18c5-1 9 0 13 3M41 13v18c-5-1-9 0-13 3M2 3v34M50 3v34" />
+          <svg className="brand-symbol" viewBox="0 0 52 46" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 8c7.5-1.5 15 .5 22 5.5V41C18.5 36.5 11 34.5 4 36z" />
+            <path d="M48 8c-7.5-1.5-15 .5-22 5.5V41c7.5-4.5 15-6.5 22-5z" />
+            <path d="M26 14v26M8 12v19c5-.3 10 1.2 14 3.3M44 12v19c-5-.3-10 1.2-14 3.3" />
           </svg>
           <span>
             Scripture<span className="brand-light">Smart</span>

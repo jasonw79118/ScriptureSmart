@@ -11,6 +11,7 @@ import { useCommunity } from './CommunityContext';
 import { Badge } from '../components';
 import { ChurchSwitcher, CommunityStatus, Field, Panel } from './ChurchPage';
 import type { Gathering, Contribution } from './models';
+import { ChurchImage } from './ChurchBrand';
 export function GroupsPage() {
   const c = useCommunity();
   const [tab, setTab] = useState('Overview');
@@ -94,12 +95,10 @@ export function GroupsPage() {
                   c.church ? `Visit ${c.church.name} website` : 'Church website'
                 }
               >
-                <span className="church-avatar">
-                  {(c.church?.name ?? 'Church').charAt(0)}
-                </span>
+                <ChurchImage church={c.church} source={churchSource} />
                 <strong>{c.church?.name ?? 'Church website'}</strong>
               </a>
-              <small>{c.church?.city ?? ''}</small>
+                <small>{c.church?.city ?? ''}</small>
               <ChurchSwitcher />
             </aside>
           </section>
@@ -107,7 +106,7 @@ export function GroupsPage() {
             {[
               'Overview',
               ...(c.canGroup('discussion') ? ['Discussion'] : []),
-              'Prayer Requests',
+              ...(c.canGroup('discussion') ? ['Prayer Requests'] : []),
               ...(c.canGroup('meals') ? ['Meals'] : []),
               ...(c.canGroup('kids') ? ['Kids'] : []),
               'Resources',
@@ -128,10 +127,7 @@ export function GroupsPage() {
             <div className="group-overview-layout">
               <main>
                 <section className="overview-card next-meeting-card">
-                  <span className="eyebrow">NEXT MEETING</span>
-                  <h2>
-                    {meeting?.title ?? 'Make room for your next gathering.'}
-                  </h2>
+                  <div className="overview-card-title"><span className="round-icon">▣</span><span><span className="eyebrow">NEXT MEETING</span><h2>{meeting?.title ?? 'Plan your next gathering'}</h2></span></div>
                   <p>
                     {meeting
                       ? `${meeting.date} · ${meeting.time.slice(0, 5)} · ${g.timezone}`
@@ -139,12 +135,7 @@ export function GroupsPage() {
                   </p>
                   <div className="editor-toolbar">
                     {meeting && (
-                      <button
-                        className="button primary"
-                        onClick={() => setTab('Meals')}
-                      >
-                        Plan this week
-                      </button>
+                      <button className="button primary" onClick={() => document.getElementById('meeting-details')?.setAttribute('open', '')}>Respond to meeting</button>
                     )}
                     {c.isLeader && (
                       <button
@@ -167,20 +158,24 @@ export function GroupsPage() {
                   />
                 )}
                 {meeting && !newMeeting && (
-                  <GatheringView key={meeting.id} meeting={meeting} />
+                  <details id="meeting-details" className="group-meeting-details">
+                    <summary><span><strong>Attendance, meals & kids’ time</strong><small>RSVP or mark that you cannot attend. Review the meal and childcare plan.</small></span><b>Open meeting details</b></summary>
+                    <GatheringView key={meeting.id} meeting={meeting} />
+                  </details>
                 )}
+                <section className="overview-card current-study-card">
+                  <div className="overview-card-title"><span className="round-icon">▤</span><span><span className="eyebrow">CURRENT STUDY FOCUS</span><h2>Keep Scripture at the center</h2></span></div>
+                  <p>A passage has not been added to this group’s meeting details yet. Open the Study Desk to read or prepare a passage for your group.</p>
+                  <a className="text-button" href="#study">Open Study Desk →</a>
+                </section>
+                <section className="overview-card group-discussion-card">
+                  <div className="overview-card-title"><span className="round-icon">◌</span><span><span className="eyebrow">THIS WEEK’S DISCUSSION</span><h2>{posts.some((p) => !p.parent_id && (p.kind === 'discussion' || p.kind === 'question')) ? 'Questions from the group' : 'Start the conversation'}</h2></span></div>
+                  {posts.filter((p) => !p.parent_id && (p.kind === 'discussion' || p.kind === 'question')).slice(0, 3).map((post, index) => <p className="group-question-preview" key={post.id}><span>{index + 1}</span>{post.text}</p>)}
+                  {!posts.some((p) => !p.parent_id && (p.kind === 'discussion' || p.kind === 'question')) && <p>Shared questions and ideas will appear here when members post in the Discussion tab.</p>}
+                  <button className="button secondary" onClick={() => setTab('Discussion')}>Open discussion →</button>
+                </section>
               </main>
               <aside className="group-side-panel">
-                <section className="overview-card">
-                  <span className="eyebrow">CURRENT STUDY FOCUS</span>
-                  <h2>{meeting?.title || 'Scripture and shared life'}</h2>
-                  <p>
-                    {posts.find(
-                      (p) => p.kind === 'discussion' || p.kind === 'question',
-                    )?.text ||
-                      'Add this week’s discussion question in the Discussion tab.'}
-                  </p>
-                </section>
                 <section className="overview-card">
                   <span className="eyebrow">MEAL PLAN</span>
                   <h2>{meeting?.meal_theme || 'Meal not set'}</h2>
@@ -196,23 +191,18 @@ export function GroupsPage() {
                     {meeting?.kids_plan || 'Kids plan has not been added yet.'}
                   </p>
                 </section>
+                <section className="overview-card prayer-summary">
+                  <span className="eyebrow">PRAYER REQUESTS</span>
+                  <h2>Pray for one another</h2>
+                  <p>{posts.filter((post) => post.kind === 'prayer' && !post.parent_id).length} shared prayer requests</p>
+                  <button className="text-button" onClick={() => setTab('Prayer Requests')}>Open prayer requests →</button>
+                </section>
                 <section className="overview-card church-source-card">
                   <span className="eyebrow">
                     FROM {c.church?.name ?? 'REDEEMER CHRISTIAN CHURCH'}
                   </span>
-                  <h2>Church website</h2>
-                  <p>
-                    Church updates can appear here when a reliable website
-                    source or approved integration is connected.
-                  </p>
-                  <a
-                    className="text-button"
-                    href={churchUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Visit church website →
-                  </a>
+                  {churchSource?.items?.length ? <div className="sourced-church-items">{churchSource.items.slice(0, 3).map((item) => <a key={`${item.sourceUrl}-${item.title}`} href={item.sourceUrl} target="_blank" rel="noopener noreferrer">{item.imageUrl && <img src={item.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />}<span><small>{item.sourceType.replace('-', ' ')}</small><strong>{item.title}</strong></span><b>↗</b></a>)}</div> : <p>No verified church updates have been synced yet.</p>}
+                  <a className="text-button" href={churchUrl} target="_blank" rel="noopener noreferrer">Visit church website →</a>
                 </section>
               </aside>
             </div>
@@ -221,7 +211,7 @@ export function GroupsPage() {
           {tab === 'Discussion' && c.canGroup('discussion') && (
             <Conversation kind="discussion" />
           )}
-          {tab === 'Prayer Requests' && <Conversation kind="discussion" />}
+          {tab === 'Prayer Requests' && c.canGroup('discussion') && <Conversation kind="prayer" />}
           {tab === 'Meals' && c.canGroup('meals') && (
             <>
               {meeting ? (
@@ -252,23 +242,9 @@ export function GroupsPage() {
             </>
           )}
           {tab === 'Resources' && (
-            <section className="resource-section-grid">
-              {[
-                'Current study guide',
-                'Sermon link',
-                'Discussion questions',
-                'Group documents',
-              ].map((item) => (
-                <article className="resource-collection-card" key={item}>
-                  <span className="eyebrow">GROUP RESOURCE</span>
-                  <h2>{item}</h2>
-                  <p>
-                    Resource upload and church integrations are planned; no
-                    files are being simulated.
-                  </p>
-                  <Badge>Planned</Badge>
-                </article>
-              ))}
+            <section className="group-resources-page">
+              <div className="page-heading"><div><span className="eyebrow">SHARED LIBRARY</span><h1>Group resources</h1><p>Study material and trusted church links for your group.</p></div></div>
+              {churchSource?.items?.length ? <div className="church-resource-grid">{churchSource.items.map((item) => <a className="church-resource-card" key={`${item.sourceUrl}-${item.title}`} href={item.sourceUrl} target="_blank" rel="noopener noreferrer">{item.imageUrl && <img src={item.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />}<small>{item.sourceType.replace('-', ' ')}</small><strong>{item.title}</strong><span>Open source ↗</span></a>)}</div> : <section className="shared-resources-empty"><span className="resource-emblem">▤</span><div><h2>No shared resources yet</h2><p>When your group shares study guides or documents, they will appear here. No example files are being shown as if they were real group resources.</p></div></section>}
             </section>
           )}
           {tab === 'Members' && (
@@ -843,10 +819,10 @@ function MealPlan({
     </section>
   );
 }
-function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
+function Conversation({ kind }: { kind: 'discussion' | 'prayer' | 'kids' }) {
   const c = useCommunity();
   const [type, setType] = useState<Contribution['kind']>(
-    kind === 'kids' ? 'kids' : 'question',
+    kind === 'kids' ? 'kids' : kind === 'prayer' ? 'prayer' : 'question',
   );
   const [text, setText] = useState('');
   const [replies, setReplies] = useState<Record<string, string>>({});
@@ -861,7 +837,7 @@ function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
         id: crypto.randomUUID(),
         group_id: c.group!.id,
         author_id: c.userId,
-        kind: kind === 'kids' ? 'kids' : type,
+        kind: kind === 'kids' ? 'kids' : kind === 'prayer' ? 'prayer' : type,
         text: body.trim(),
         parent_id: parent,
         created_at: new Date().toISOString(),
@@ -875,7 +851,9 @@ function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
         title={
           kind === 'kids'
             ? 'Share a kids’ time idea'
-            : 'Bring your voice to the discussion'
+            : kind === 'prayer'
+              ? 'Share a prayer request'
+              : 'Bring your voice to the discussion'
         }
       >
         <form
@@ -885,7 +863,7 @@ function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
             if (await post(text)) setText('');
           }}
         >
-          {kind !== 'kids' && (
+          {kind === 'discussion' && (
             <label>
               Contribution type
               <select
@@ -901,7 +879,7 @@ function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
             </label>
           )}
           <label>
-            {kind === 'kids' ? 'Activity idea' : 'Your contribution'}
+            {kind === 'kids' ? 'Activity idea' : kind === 'prayer' ? 'Prayer request' : 'Your contribution'}
             <textarea
               required
               maxLength={10000}
@@ -910,7 +888,7 @@ function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
             />
           </label>
           <button className="button primary" disabled={c.busy || !text.trim()}>
-            Share with group
+            {kind === 'prayer' ? 'Share prayer request' : 'Share with group'}
           </button>
           <small>
             {c.configured
@@ -923,7 +901,7 @@ function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
         .filter(
           (p) =>
             !p.parent_id &&
-            (kind === 'kids' ? p.kind === 'kids' : p.kind !== 'kids'),
+            (kind === 'kids' ? p.kind === 'kids' : kind === 'prayer' ? p.kind === 'prayer' : p.kind !== 'kids' && p.kind !== 'prayer'),
         )
         .sort((a, b) => b.created_at.localeCompare(a.created_at))
         .map((p) => (

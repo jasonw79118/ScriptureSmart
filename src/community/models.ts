@@ -91,7 +91,7 @@ export interface Contribution {
   id: string;
   group_id: string;
   author_id: string;
-  kind: 'question' | 'idea' | 'discussion' | 'kids';
+  kind: 'question' | 'idea' | 'discussion' | 'prayer' | 'kids';
   text: string;
   parent_id: string | null;
   created_at: string;

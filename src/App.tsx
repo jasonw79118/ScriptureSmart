@@ -18,6 +18,7 @@ import {
 } from './Screens';
 import './App.css';
 import './community/community.css';
+import './redesign.css';
 import { useCommunity } from './community/CommunityContext';
 import { ChurchPage } from './community/ChurchPage';
 import { LoginPage } from './community/LoginPage';
@@ -25,6 +26,7 @@ import { Onboarding } from './community/Onboarding';
 import { GroupFinder } from './community/GroupFinder';
 import type { ModuleKey } from './community/models';
 import { GroupsPage } from './community/GroupsPage';
+import { ChurchImage } from './community/ChurchBrand';
 import {
   validDrafts,
   validNotes,
@@ -83,10 +85,23 @@ function routeFromHash(): Route {
   const route = location.hash.slice(1).split('/')[0];
   return allRoutes.includes(route as Route) ? (route as Route) : 'dashboard';
 }
+function NavGlyph({ name }: { name: string }) {
+  const paths: Record<string, ReactNode> = {
+    Home: <><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z" /></>,
+    Book: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 0 4 22z" /><path d="M4 5.5v14A2.5 2.5 0 0 1 6.5 17H20" /></>,
+    Search: <><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 5 5" /><path d="M8 11h5M10.5 8.5v5" /></>,
+    Write: <><path d="m4 16.5-.9 4.4 4.4-.9L20 7.5 16.5 4z" /><path d="m14.8 5.7 3.5 3.5" /></>,
+    Group: <><circle cx="9" cy="8" r="3" /><path d="M3 20c0-3.2 2.6-5.5 6-5.5s6 2.3 6 5.5M17 5.5a3 3 0 0 1 0 5.8M18 14.7c2.1.6 3.2 2.4 3.2 4.8" /></>,
+    Library: <><path d="M4 4h4v16H4zM10 4h4v16h-4zM17 5l3.5 14M17 5l3.8-1" /></>,
+    More: <><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></>,
+  };
+  return <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">{paths[name] ?? paths.Book}</svg>;
+}
 function App() {
   const community = useCommunity();
   const groupLabel = community.church?.group_label_plural ?? 'Groups';
   const churchUrl = community.church?.website_url ?? '#church';
+  const churchSource = community.data.church_sources?.find((source) => source.churchId === community.church?.id);
   const [route, setRoute] = useState<Route>(routeFromHash);
   const [menu, setMenu] = useState(false);
   const [mobile, setMobile] = useState(
@@ -281,11 +296,7 @@ function App() {
             onClick={() => openDraft(d)}
           >
             <div className={`document-icon ${d.kind}`}>
-              {d.kind === 'sermon'
-                ? 'Group'
-                : d.kind === 'study'
-                  ? 'Book'
-                  : 'Guide'}
+              <NavGlyph name={d.kind === 'sermon' ? 'Write' : d.kind === 'study' ? 'Book' : 'Library'} />
             </div>
             <div className="card-kicker">
               {labels[d.kind]} {d.sample && <span>· Sample</span>}
@@ -312,6 +323,11 @@ function App() {
       style={
         {
           '--church-accent': community.church?.accent ?? '#35553d',
+          '--ss-home-image': `url("${import.meta.env.BASE_URL}images/home-study.webp")`,
+          '--ss-study-image': `url("${import.meta.env.BASE_URL}images/study-desk.webp")`,
+          '--ss-explore-image': `url("${import.meta.env.BASE_URL}images/explore-library.webp")`,
+          '--ss-sermon-image': `url("${import.meta.env.BASE_URL}images/sermon-writing.webp")`,
+          '--ss-group-image': `url("${import.meta.env.BASE_URL}images/gospel-community.webp")`,
         } as import('react').CSSProperties
       }
     >
@@ -338,43 +354,16 @@ function App() {
         >
           Close menu <span aria-hidden="true">&times;</span>
         </button>
-        <a className="brand" href="#dashboard">
-          <span className="brand-symbol">SS</span>
+        <a className="brand" href="#dashboard" aria-label="ScriptureSmart home">
+          <svg className="brand-symbol" viewBox="0 0 52 46" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 7c8-2 14 0 21 5 7-5 13-7 21-5v31c-8-2-14 0-21 5-7-5-13-7-21-5z" />
+            <path d="M26 12v31M11 13v18c5-1 9 0 13 3M41 13v18c-5-1-9 0-13 3M2 3v34M50 3v34" />
+          </svg>
           <span>
             Scripture<span className="brand-light">Smart</span>
-            <small>YOUR STUDY WORKSPACE</small>
+            <small>DEEPER SCRIPTURE. BRIGHTER LIFE.</small>
           </span>
         </a>
-        <a
-          className="church-nav-identity"
-          href={churchUrl}
-          target={churchUrl.startsWith('http') ? '_blank' : undefined}
-          rel={churchUrl.startsWith('http') ? 'noreferrer' : undefined}
-          title={
-            community.church
-              ? `Visit ${community.church.name} website`
-              : 'Church workspace'
-          }
-        >
-          <span className="church-nav-avatar">
-            {(community.church?.name ?? 'Church').charAt(0)}
-          </span>
-          <span>
-            <strong>{community.church?.name ?? 'Church workspace'}</strong>
-            <small>{community.church?.city}</small>
-          </span>
-        </a>
-        <div className="church-sidebar-links" aria-label="Church links">
-          <a
-            href={churchUrl}
-            target={churchUrl.startsWith('http') ? '_blank' : undefined}
-            rel={churchUrl.startsWith('http') ? 'noreferrer' : undefined}
-          >
-            Church Home
-          </a>
-          <a href="#groups">Gospel Communities</a>
-          <a href="#church">Church workspace</a>
-        </div>
         <nav aria-label="Main navigation">
           {nav
             .filter((n) => allowed(n.id))
@@ -383,34 +372,33 @@ function App() {
                 key={n.id}
                 href={`#${n.id}`}
                 aria-current={route === n.id ? 'page' : undefined}
-                className={`${route === n.id ? 'active' : ''} ${i === 8 ? 'nav-divider' : ''}`}
+                className={`${route === n.id ? 'active' : ''} ${i === 5 ? 'nav-divider' : ''}`}
                 onClick={() => setMenu(false)}
               >
-                <span className="nav-icon">{n.icon}</span>
+                <NavGlyph name={n.icon} />
                 {n.id === 'groups' ? groupLabel : n.label}
-                {n.id === 'table' && (
-                  <span className="nav-count">{table.length}</span>
-                )}
               </a>
             ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="local-pill">
-            <span /> Local workspace
-          </div>
-          <p>
-            Your next insight starts
-            <br />
-            with a closer look.
+          <p className="sidebar-verse">
+            “Your word is a lamp to my feet and a light to my path.”
+            <small>PSALM 119:105</small>
           </p>
-          <div className="profile">
-            <span className="avatar">
-              {settings.name.charAt(0).toUpperCase()}
-            </span>
-            <div>
-              {settings.name}
-              <small>Personal account · Preview</small>
-            </div>
+          <div className="sidebar-church">
+            <a href={churchUrl} target={churchUrl.startsWith('http') ? '_blank' : undefined} rel={churchUrl.startsWith('http') ? 'noopener noreferrer' : undefined} title={community.church ? `Visit ${community.church.name} website` : 'Church website'}>
+              <ChurchImage church={community.church} source={churchSource} />
+              <span><strong>{community.church?.name ?? 'Choose your church'}</strong><small>{community.church?.city ?? 'Church workspace'}</small></span>
+            </a>
+            <details className="sidebar-utilities">
+              <summary><NavGlyph name="More" /> Workspace & account</summary>
+              <a href="#table">The Table <span>{table.length}</span></a>
+              <a href="#church">Church workspace</a>
+              <a href="#connections">Connections</a>
+              <a href="#settings">Settings</a>
+              <a href="#member-login">Member login</a>
+              <span className="local-pill"><i /> Local preview · {settings.name}</span>
+            </details>
           </div>
         </div>
       </aside>
@@ -423,7 +411,7 @@ function App() {
       )}
       <div className="main-shell" inert={mobile && menu}>
         <header className="topbar">
-          <div className="breadcrumb">
+          <div className="topbar-left">
             <button
               ref={menuButtonRef}
               aria-controls="site-navigation"
@@ -434,49 +422,36 @@ function App() {
             >
               Menu
             </button>
-            <span>Workspace</span>
-            <span className="slash">/</span>
-            <strong>
-              {nav.find((n) => n.id === route)?.label ??
-                (route === 'onboarding'
-                  ? 'Church connection'
-                  : 'Discussion Guide')}
-            </strong>
+            <span className="mobile-route-name">{nav.find((n) => n.id === route)?.label ?? 'Workspace'}</span>
           </div>
           <div className="topbar-right">
-            <span className="preview-label">LOCAL PREVIEW</span>
+            <button className="search-shortcut" onClick={() => go('library')} aria-label="Search your library">
+              <NavGlyph name="Search" /> <span>Search</span>
+            </button>
             <a
               className="top-church-selector"
               href={churchUrl}
               target={churchUrl.startsWith('http') ? '_blank' : undefined}
-              rel={churchUrl.startsWith('http') ? 'noreferrer' : undefined}
+              rel={churchUrl.startsWith('http') ? 'noopener noreferrer' : undefined}
               title={
                 community.church
                   ? `Visit ${community.church.name} website`
                   : 'Church workspace'
               }
             >
-              <span className="church-avatar small">
-                {(community.church?.name ?? 'Church').charAt(0)}
-              </span>
+              <ChurchImage church={community.church} source={churchSource} className="church-avatar" />
               <span>
                 <strong>{community.church?.name ?? 'Church workspace'}</strong>
                 <small>{community.church?.city ?? ''}</small>
               </span>
             </a>
-            <button className="search-shortcut" onClick={() => go('library')}>
-              Search <span>Find in library</span>
-            </button>
-            <span className="avatar small">
-              {settings.name.charAt(0).toUpperCase()}
-            </span>
+            <details className="top-utilities">
+              <summary aria-label="Open workspace settings"><span className="account-avatar">{settings.name.charAt(0).toUpperCase()}</span></summary>
+              <div><strong>{settings.name}</strong><a href="#connections">Connections</a><a href="#settings">Settings</a><a href="#member-login">Member login</a></div>
+            </details>
           </div>
         </header>
         <main id="main-content" tabIndex={-1}>
-          <div className="preview-banner">
-            <span>Note</span> Personal study drafts are local. Open your church
-            workspace for group planning; your edits stay in this browser.
-          </div>
           {error && (
             <div role="alert" className="alert">
               {error}
@@ -509,13 +484,10 @@ function App() {
                 <>
                   <section className="home-study-hero">
                     <div className="home-hero-copy">
-                      <span className="hero-eyebrow">
-                        SCRIPTURESMART STUDY DESK
-                      </span>
+                      <span className="hero-eyebrow">A SCRIPTURE STUDY WORKSPACE</span>
                       <h1>What are you studying today?</h1>
                       <p>
-                        Ask a Bible question, open a passage, prepare to teach,
-                        or gather your notes for deeper study.
+                        Ask a question. Explore a passage. Prepare a sermon. Grow together.
                       </p>
                       <form
                         className="home-ask-form"
@@ -533,7 +505,11 @@ function App() {
                           onChange={(event) => setHomeQuery(event.target.value)}
                           placeholder="Ask anything about the Bible..."
                         />
-                        <button className="button primary">Study →</button>
+                        <label className="sr-only" htmlFor="home-translation">Preferred translation</label>
+                        <select id="home-translation" aria-label="Preferred Bible translation" value={supportedTranslationId(settings.translation)} onChange={(event) => saveSettings({ ...settings, translation: event.target.value })}>
+                          {[defaultTranslationId, ...supportedComparisonIds([], defaultTranslationId), 'WEBUS', 'FBV', 'LSV', 'WMB', 'CPDV', 'TCENT'].filter((id, index, items) => items.indexOf(id) === index).map((id) => <option key={id} value={id}>{id}</option>)}
+                        </select>
+                        <button className="button primary" aria-label="Start studying">→</button>
                       </form>
                       <div
                         className="prompt-pills"
@@ -558,15 +534,6 @@ function App() {
                         ))}
                       </div>
                     </div>
-                    <div className="study-room-art" aria-hidden="true">
-                      <div className="desk-card manuscript-card">
-                        Ephesians 1
-                      </div>
-                      <div className="desk-card notes-card">
-                        Notes + questions
-                      </div>
-                      <div className="lamp-glow" />
-                    </div>
                   </section>
                   <section className="pathway-grid" aria-label="Study pathways">
                     {[
@@ -590,13 +557,13 @@ function App() {
                         'Open groups, shared studies, The Table, meals, kids planning, and logistics.',
                         () => go('groups'),
                       ],
-                    ].map(([title, description, action]) => (
+                    ].map(([title, description, action], index) => (
                       <button
-                        className="pathway-card"
+                        className={`pathway-card pathway-card-${index + 1}`}
                         key={title as string}
                         onClick={action as () => void}
                       >
-                        <span>✦</span>
+                        <span className="pathway-card-icon"><NavGlyph name={['Book', 'Write', 'Search', 'Group'][index]} /></span>
                         <strong>{title as string}</strong>
                         <small>{description as string}</small>
                       </button>
@@ -621,16 +588,11 @@ function App() {
                           .slice(0, 3),
                       )}
                     </section>
-                    <section className="panel editorial-panel">
+                    <section className="panel editorial-panel recent-passages-panel">
                       <h2>Recent Passages</h2>
-                      <div className="inline-links">
-                        <button onClick={() => go('study')}>{passage} →</button>
-                        <button onClick={() => go('research')}>
-                          Saved notes · {notes.length} →
-                        </button>
-                        <button onClick={() => go('groups')}>
-                          {groupLabel} · this week →
-                        </button>
+                      <div className="recent-passage-list">
+                        {[...new Set([passage, ...notes.map((item) => item.passage).filter(Boolean)])].slice(0, 4).map((reference) => <button key={reference} onClick={() => { setPassage(reference); go('study'); }}><span className="recent-book-mark"><NavGlyph name="Book" /></span><span><strong>{reference}</strong><small>{reference === passage ? 'Current passage' : 'From your saved notes'}</small></span><span className="recent-arrow">→</span></button>)}
+                        <button onClick={() => go('library')}><span className="recent-book-mark"><NavGlyph name="Library" /></span><span><strong>Your saved notes</strong><small>{notes.length} personal notes</small></span><span className="recent-arrow">→</span></button>
                       </div>
                     </section>
                   </div>

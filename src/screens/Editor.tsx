@@ -37,6 +37,8 @@ export function Editor({
   const [active, setActive] = useState(sections[kind][0]);
   const update = (part: Partial<Draft>) =>
     draft && save({ ...draft, ...part, updatedAt: timestamp() });
+  const updateSection = (name: string, value: string) =>
+    draft && update({ sections: { ...draft.sections, [name]: value } });
   const filled = draft
     ? sections[kind].filter((name) => draft.sections[name]?.trim()).length
     : 0;
@@ -79,12 +81,13 @@ export function Editor({
           <span className="eyebrow">
             PRAY · STUDY · STRUCTURE · WRITE · EQUIP
           </span>
-          <h1>{draft.title || `Untitled ${labels[kind].toLowerCase()}`}</h1>
+          <h1>{studioTitles[kind]}</h1>
           <p>
-            {draft.passage ||
-              'Choose a passage, then build the idea, outline, application, and next steps.'}
+            {draft.title || `Untitled ${labels[kind].toLowerCase()}`} · {draft.passage || 'Choose a primary passage'}
           </p>
         </div>
+      </section>
+      <div className="studio-toolbar">
         <div className="studio-progress" aria-label="Writing progress">
           {['Build', 'Refine', 'Prepare', 'Share'].map((step, index) => (
             <span
@@ -95,8 +98,6 @@ export function Editor({
             </span>
           ))}
         </div>
-      </section>
-      <div className="studio-toolbar">
         <button className="button secondary" onClick={() => select('')}>
           All drafts
         </button>
@@ -111,7 +112,7 @@ export function Editor({
         >
           Export text ↓
         </button>
-        <span className="muted">Edits save on this device</span>
+        <span className="muted">Saved on this device</span>
       </div>
       <div className="studio-workspace">
         <aside className="studio-outline" aria-label="Draft sections">
@@ -167,24 +168,18 @@ export function Editor({
               />
             </label>
           </div>
-          <label className="writing-label">
+          {kind === 'sermon' && <label className="writing-label sermon-featured-field">Central idea<textarea aria-label="Central idea" value={draft.sections['Central idea'] ?? ''} placeholder="What is the one truth this sermon will help people see?" onChange={(event) => updateSection('Central idea', event.target.value)} /></label>}
+          {kind === 'sermon' && <label className="writing-label sermon-outline-field">Outline<textarea aria-label="Sermon outline" value={draft.sections['Main outline'] ?? ''} placeholder="I. First movement\nII. Second movement\nIII. Response" onChange={(event) => updateSection('Main outline', event.target.value)} /></label>}
+          {!(kind === 'sermon' && (active === 'Central idea' || active === 'Main outline')) && <label className="writing-label">
             {active}
             <textarea
               className="manuscript"
               aria-label={active}
-              placeholder={
-                active === 'Main outline'
-                  ? 'I.\nII.\nIII.'
-                  : `Begin your ${active.toLowerCase()} here...`
-              }
+              placeholder={`Begin your ${active.toLowerCase()} here…`}
               value={draft.sections[active] ?? ''}
-              onChange={(e) =>
-                update({
-                  sections: { ...draft.sections, [active]: e.target.value },
-                })
-              }
+              onChange={(e) => updateSection(active, e.target.value)}
             />
-          </label>
+          </label>}
           <div className="writing-status">
             <span>
               {
@@ -203,12 +198,9 @@ export function Editor({
           </div>
         </main>
         <aside className="studio-ai-rail">
-          <div className="rail-heading">
-            <span className="eyebrow">ScriptureSmart AI</span>
-            <h2>Research & Inspiration</h2>
-          </div>
           <AssistantPanel
             key={`${draft.id}:${active}`}
+            allowScripture
             taskType={
               kind === 'guide'
                 ? 'discussion-guide'
@@ -307,6 +299,13 @@ export function Editor({
                 : undefined
             }
           />
+          <section className="studio-inspiration-links">
+            <span className="eyebrow">RESEARCH & INSPIRATION</span>
+            <h2>Keep your sources close.</h2>
+            <p>Open the passage desk or browse connected resources as you prepare. External commentary appears only when a verified source is available.</p>
+            <a href="#study">Open Study Desk →</a>
+            <a href="#research">Browse Explore →</a>
+          </section>
         </aside>
       </div>
     </div>

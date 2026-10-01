@@ -86,6 +86,7 @@ function routeFromHash(): Route {
 function App() {
   const community = useCommunity();
   const groupLabel = community.church?.group_label_plural ?? 'Groups';
+  const churchUrl = community.church?.website_url ?? '#church';
   const [route, setRoute] = useState<Route>(routeFromHash);
   const [menu, setMenu] = useState(false);
   const [mobile, setMobile] = useState(
@@ -340,10 +341,36 @@ function App() {
             <small>YOUR STUDY WORKSPACE</small>
           </span>
         </a>
-        <a className="church-nav-identity" href="#church">
-          <strong>{community.church?.name ?? 'Church workspace'}</strong>
-          <small>{community.church?.city}</small>
+        <a
+          className="church-nav-identity"
+          href={churchUrl}
+          target={churchUrl.startsWith('http') ? '_blank' : undefined}
+          rel={churchUrl.startsWith('http') ? 'noreferrer' : undefined}
+          title={
+            community.church
+              ? `Visit ${community.church.name} website`
+              : 'Church workspace'
+          }
+        >
+          <span className="church-nav-avatar">
+            {(community.church?.name ?? 'Church').charAt(0)}
+          </span>
+          <span>
+            <strong>{community.church?.name ?? 'Church workspace'}</strong>
+            <small>{community.church?.city}</small>
+          </span>
         </a>
+        <div className="church-sidebar-links" aria-label="Church links">
+          <a
+            href={churchUrl}
+            target={churchUrl.startsWith('http') ? '_blank' : undefined}
+            rel={churchUrl.startsWith('http') ? 'noreferrer' : undefined}
+          >
+            Church Home
+          </a>
+          <a href="#groups">Gospel Communities</a>
+          <a href="#church">Church workspace</a>
+        </div>
         <nav aria-label="Main navigation">
           {nav
             .filter((n) => allowed(n.id))
@@ -414,6 +441,25 @@ function App() {
           </div>
           <div className="topbar-right">
             <span className="preview-label">LOCAL PREVIEW</span>
+            <a
+              className="top-church-selector"
+              href={churchUrl}
+              target={churchUrl.startsWith('http') ? '_blank' : undefined}
+              rel={churchUrl.startsWith('http') ? 'noreferrer' : undefined}
+              title={
+                community.church
+                  ? `Visit ${community.church.name} website`
+                  : 'Church workspace'
+              }
+            >
+              <span className="church-avatar small">
+                {(community.church?.name ?? 'Church').charAt(0)}
+              </span>
+              <span>
+                <strong>{community.church?.name ?? 'Church workspace'}</strong>
+                <small>{community.church?.city ?? ''}</small>
+              </span>
+            </a>
             <button className="search-shortcut" onClick={() => go('library')}>
               âŒ• <span>Find in library</span>
             </button>

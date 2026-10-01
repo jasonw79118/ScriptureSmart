@@ -248,7 +248,8 @@ export function AssistantPanel({
       <div className="section-heading">
         <div>
           <Badge>Built-in assistant</Badge>
-          <h2>{chatMode ? 'Study Chat' : 'ScriptureSmart AI'}</h2>
+          <h2>{chatMode ? 'Ask ScriptureSmart' : 'ScriptureSmart AI'}</h2>
+          {chatMode && <p>Your AI study assistant for deeper understanding.</p>}
         </div>
         {!chatMode && (
           <button
@@ -304,6 +305,11 @@ export function AssistantPanel({
               <label>
                 Ask ScriptureSmart
                 <textarea
+                  placeholder={
+                    chatMode && baseContext.passageReference
+                      ? `Ask a question about ${baseContext.passageReference}...`
+                      : undefined
+                  }
                   aria-label="Ask ScriptureSmart prompt"
                   value={prompt}
                   maxLength={6000}

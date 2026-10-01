@@ -29,7 +29,11 @@ export function GroupsPage() {
   const mealSlots = meeting
     ? c.data.dishes.filter((d) => d.meeting_id === meeting.id)
     : [];
-  const churchUrl = 'https://www.redeemerchristianchurch.com/';
+  const churchSource = c.data.church_sources?.find(
+    (source) => source.churchId === c.church?.id,
+  );
+  const churchUrl =
+    c.church?.website_url ?? churchSource?.websiteUrl ?? '#church';
 
   return (
     <>
@@ -59,6 +63,9 @@ export function GroupsPage() {
         <div className="group-experience">
           <section className="group-hero image-hero group-image">
             <div>
+              <a className="text-button group-back-link" href="#groups">
+                ← All Groups
+              </a>
               <Badge>{c.church?.group_label ?? 'Gospel Community'}</Badge>
               <h1>{g.name}</h1>
               <p>
@@ -83,14 +90,16 @@ export function GroupsPage() {
                 href={churchUrl}
                 target="_blank"
                 rel="noreferrer"
-                title={`Visit ${c.church?.name ?? 'Redeemer Christian Church'} website`}
+                title={
+                  c.church ? `Visit ${c.church.name} website` : 'Church website'
+                }
               >
                 <span className="church-avatar">
-                  {(c.church?.name ?? 'Redeemer').charAt(0)}
+                  {(c.church?.name ?? 'Church').charAt(0)}
                 </span>
-                <strong>{c.church?.name ?? 'Redeemer Christian Church'}</strong>
+                <strong>{c.church?.name ?? 'Church website'}</strong>
               </a>
-              <small>{c.church?.city ?? 'Amarillo, TX'}</small>
+              <small>{c.church?.city ?? ''}</small>
               <ChurchSwitcher />
             </aside>
           </section>

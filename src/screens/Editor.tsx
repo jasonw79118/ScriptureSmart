@@ -76,7 +76,9 @@ export function Editor({
     <div className="writing-studio-shell">
       <section className="studio-hero compact image-hero teaching-hero">
         <div>
-          <span className="eyebrow">{studioTitles[kind]}</span>
+          <span className="eyebrow">
+            PRAY · STUDY · STRUCTURE · WRITE · EQUIP
+          </span>
           <h1>{draft.title || `Untitled ${labels[kind].toLowerCase()}`}</h1>
           <p>
             {draft.passage ||
@@ -132,7 +134,11 @@ export function Editor({
             <span>{labels[kind]}</span>
           </div>
           <label>
-            Sermon title
+            {kind === 'sermon'
+              ? 'Sermon title'
+              : kind === 'study'
+                ? 'Study title'
+                : 'Guide title'}
             <input
               className="title-input"
               value={draft.title}

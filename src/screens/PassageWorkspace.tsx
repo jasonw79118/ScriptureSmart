@@ -7,7 +7,7 @@ import {
   supportedTranslationId,
   translations,
 } from '../domain/providers';
-import { Badge, Empty, Heading } from '../components';
+import { Badge, Empty } from '../components';
 import { getBiblePassage, type BiblePassageResult } from '../ai/bibleClient';
 import { AIError } from '../domain/ai';
 export function PassageWorkspace({
@@ -129,10 +129,11 @@ export function PassageWorkspace({
   ]);
   return (
     <>
-      <Heading
-        title="Give the passage your attention."
-        subtitle="Read carefully. Follow the context. Keep your sources close."
-      />
+      <section className="study-desk-banner image-hero study-image">
+        <span className="eyebrow">STUDY DESK</span>
+        <h1>Study Desk</h1>
+        <p>Read deeply. Explore widely. Apply faithfully.</p>
+      </section>
       <form
         className="passage-search"
         onSubmit={(e) => {
@@ -165,8 +166,9 @@ export function PassageWorkspace({
       {validation && <p role="alert">{validation}</p>}
       <div className="workspace-title">
         <div>
-          <span className="eyebrow">PASSAGE WORKSPACE</span>
-          <h2>{passage}</h2>
+          <span className="eyebrow">SCRIPTURE</span>
+          <h2>{passage.split(':')[0]}</h2>
+          <p className="muted">Spiritual Blessings in Christ</p>
         </div>
         <button
           className="button secondary"

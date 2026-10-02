@@ -14,7 +14,6 @@ import { validateRequest } from '../server/ai/validation.ts';
 import { generateWithBinding } from '../server/ai/provider.ts';
 import {
   retrieveApiBiblePassage,
-  retrieveEsvPassage,
 } from '../server/ai/translationProviders.ts';
 import { parseAIResponse } from '../src/domain/ai.ts';
 
@@ -39,7 +38,7 @@ test('Bible request boundary rejects URLs, excessive lists and forged provider c
   for (const bible of [
     { references: ['https://evil.test'] },
     { references: Array(7).fill('John 1') },
-    { references: ['John 1'], translation: 'ESV' },
+    { references: ['John 1'], translation: 'NASB' },
   ])
     assert.throws(() => validateRequest({ ...base, bible }));
   assert.deepEqual(
@@ -195,18 +194,11 @@ test('API.Bible resolves only licensed versions and requests plain passage text 
       calls.push({ url: String(url), init });
       if (String(url).includes('/bibles?'))
         return Response.json({
-          data: [
-            {
-              id: 'nkjv-version',
-              abbreviation: 'NKJV',
-              name: 'New King James Version',
-            },
-          ],
+          data: [{ id: 'nkjv-version', abbreviation: 'NKJV', name: 'New King James Version' }],
         });
       return Response.json({
         data: {
-          content:
-            '16 For God so loved the world. 17 For God did not send His Son.',
+          content: '16 For God so loved the world. 17 For God did not send His Son.',
           reference: 'John 3:16-17',
           copyright: 'Scripture quotations are from the NKJV.',
         },
@@ -224,49 +216,4 @@ test('API.Bible resolves only licensed versions and requests plain passage text 
   assert.match(passage.attribution, /NKJV/);
   assert.equal(passage.fumsToken, 'fums-view-token');
   assert.ok(!JSON.stringify(passage).includes('private-api-bible-key'));
-  const legacyNiv = await retrieveApiBiblePassage({
-    apiKey: 'private-api-bible-key',
-    reference: 'John 3:16',
-    translationId: 'NIV',
-    transport: async (url) =>
-      String(url).includes('/bibles?')
-        ? Response.json({
-            data: [
-              {
-                id: 'legacy-niv',
-                abbreviation: 'NIV',
-                name: 'New International Version',
-              },
-            ],
-          })
-        : Response.json({
-            data: {
-              content: 'Legacy request still works.',
-              reference: 'John 3:16',
-            },
-          }),
-  });
-  assert.equal(legacyNiv.translationId, 'NIV');
-});
-
-test('ESV requests use Crossway authorization and preserve the required ESV notice', async () => {
-  let request;
-  const passage = await retrieveEsvPassage({
-    apiKey: 'private-esv-key',
-    reference: 'John 3:16',
-    transport: async (url, init) => {
-      request = { url: String(url), init };
-      return Response.json({
-        canonical: 'John 3:16',
-        passages: ['16 For God so loved the world. (ESV)'],
-      });
-    },
-  });
-  assert.match(request.url, /q=John\+3%3A16/);
-  assert.equal(request.init.headers.Authorization, 'Token private-esv-key');
-  assert.equal(passage.translationId, 'ESV');
-  assert.match(passage.text, /\(ESV\)/);
-  assert.match(passage.attribution, /© 2001 by Crossway/);
-  assert.match(passage.sourceUrl, /^https:\/\/www\.esv\.org\//);
-  assert.ok(!JSON.stringify(passage).includes('private-esv-key'));
 });

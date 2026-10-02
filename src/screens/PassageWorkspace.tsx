@@ -169,14 +169,19 @@ export function PassageWorkspace({
         <div className="scripture-attribution">
           <span>{result.attribution}</span>
           <a href={result.sourceUrl} target="_blank" rel="noopener noreferrer">
-            Open API.Bible ↗
+            {result.translationId === 'KJV' ? 'Open public KJV source ↗' : 'Open API.Bible ↗'}
           </a>
         </div>
         {result.rights && (
           <small className="muted">
-            This version is displayed from the API.Bible response. It is not
-            sent to AI or saved in browser storage; commercial permission is not
-            confirmed in this connection.
+            {result.rights.aiContextAllowed
+              ? 'The source allows this text in AI study.'
+              : 'This text is for display only and is not sent to AI.'}{' '}
+            {result.rights.localStorageAllowed
+              ? 'Browser saving is permitted by the source.'
+              : 'It is not saved in browser storage.'}
+            {!result.rights.commercialUseAllowed &&
+              ' Commercial permission is not confirmed.'}
           </small>
         )}
       </>

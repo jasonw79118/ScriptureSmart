@@ -36,7 +36,7 @@ Browser tests use installed Microsoft Edge for desktop and mobile viewport proje
 
 - Responsive sidebar, mobile navigation, and shareable hash routes for all main areas.
 - Dashboard with recent drafts, passage entry point, sample group study, local Table activity, and provider status.
-- Passage workspace with NASB, CSB, NKJV, and KJV when licensed, translation comparison, source-specific research panels, interpretive approaches, and persistent personal notes.
+- Passage workspace with CSB, NLT, NKJV, and public-domain KJV, translation comparison, source-specific research panels, interpretive approaches, and persistent personal notes.
 - Structured sermon and Bible-study editors with editable sections, local autosave, and plain-text export.
 - Discussion-guide editor with sermon text input and Opening, Read, Observe, Interpret, Discuss, Apply, and Pray sections. Optional built-in AI generates an editable draft for explicit review and insertion.
 - Sample group and local Table: add questions, passages, resources, notes, and sermon excerpts; reply; mark and filter items for group night.
@@ -49,7 +49,7 @@ Sample drafts and group content are labeled. Retrieved Bible text, word annotati
 
 ## Bible Research Pipeline
 
-API.Bible discovers the editions authorized for the server key through `/v1/bibles`; ScriptureSmart maps the returned abbreviations to NASB, CSB, NKJV, and KJV. IDs are not fixed in the frontend. If an edition is not authorized, it is omitted from the available list and its passage request gives a safe access message. The selected translation is retrieved server-side for display. Licensed passage text is not sent to Workers AI because this deployment has no confirmed AI-context permission metadata.
+API.Bible discovers the editions authorized for the Cloudflare key through `/v1/bibles`; ScriptureSmart uses it for CSB, NLT, and NKJV. If an edition is not authorized, it is omitted from the available list and its passage request gives a safe access message. Public-domain KJV text comes from bible-api.com and does not use API.Bible. Licensed passage text is retrieved server-side for display and is not sent to Workers AI; public-domain KJV text may be included in study context.
 
 The Free Use Bible API supplies a public-domain BSB comparison passage, OpenBible.info cross references, available commentary chapters, Theographic people/place/event data, and BSB word annotations where a chapter has them. Strong's IDs, lemma, morphology, and word anchors appear only when the endpoint supplies them. The current source does not provide a guaranteed original-script form, transliteration, or English gloss for every annotated word, so ScriptureSmart leaves those fields unavailable. Each provider can fail independently while other returned research remains available.
 
@@ -105,7 +105,7 @@ Credentials must be accepted only by an authenticated server over TLS, encrypted
 Planned integrations (availability and licensing must be verified before implementation):
 
 - AI: OpenAI, Anthropic Claude, xAI Grok; later Gemini, Azure OpenAI, Bedrock, Ollama/local models.
-- Scripture: approved YouVersion developer access; Bible Brain text/audio/video/languages; ESV; vetted public-domain sources. Translation availability is not assumed.
+- Scripture: API.Bible for CSB, NLT, and NKJV; public-domain KJV source; approved YouVersion developer access; Bible Brain research sources. Translation availability is not assumed.
 - Official OAuth/OpenID only where supported; YouVersion highlights only if explicitly supported and user-authorized.
 - Church content: YouTube, Google Drive, Dropbox, Planning Center, Church Center, podcast RSS.
 - Document/media parsing: DOCX, PDF, audio, video, and YouTube imports.

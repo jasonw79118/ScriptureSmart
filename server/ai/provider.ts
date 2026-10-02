@@ -39,6 +39,12 @@ async function run(
     selectedTranslationId: string;
     testament: 'old' | 'new';
     data: OpenBibleResearch;
+    selected?: {
+      id: string;
+      name: string;
+      text: string;
+      rights: TranslationRights;
+    };
   },
 ) {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -53,6 +59,15 @@ async function run(
                 reference: research.reference,
                 selectedTranslationId: research.selectedTranslationId,
                 testament: research.testament,
+                ...(research.selected?.rights.aiContextAllowed
+                  ? {
+                      selectedTranslation: {
+                        id: research.selected.id,
+                        name: research.selected.name,
+                        text: research.selected.text,
+                      },
+                    }
+                  : {}),
                 openTranslation: research.data.openTranslation,
                 crossReferences: research.data.references,
                 words: research.data.words,
@@ -103,6 +118,7 @@ export async function generateWithBinding(
     selectedTranslationId: string;
     testament: 'old' | 'new';
     selected?: {
+      id: string;
       text: string;
       attribution: string;
       sourceUrl: string;
@@ -191,7 +207,7 @@ export async function generateWithBinding(
             ...(research.selected
               ? {
                   selectedTranslation: {
-                    id: research.selectedTranslationId,
+                    id: research.selected.id,
                     name: research.selected.name,
                     text: research.selected.text,
                     attribution: research.selected.attribution,

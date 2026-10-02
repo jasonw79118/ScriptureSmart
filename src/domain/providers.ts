@@ -1,15 +1,18 @@
-import type { BibleProvider, Translation, Source, User } from './models';
+import type { BibleProvider, Translation, Source, User } from './models.ts';
+
+export const activeTranslationIds = ['CSB', 'NLT', 'NKJV', 'KJV'] as const;
+export const apiBibleTranslationIds = ['CSB', 'NLT', 'NKJV'] as const;
 
 export const translations: Translation[] = [
   {
-    id: 'NASB',
-    name: 'New American Standard Bible',
+    id: 'CSB',
+    name: 'Christian Standard Bible',
     providerIds: ['api-bible'],
     requiresLicense: true,
   },
   {
-    id: 'CSB',
-    name: 'Christian Standard Bible',
+    id: 'NLT',
+    name: 'New Living Translation',
     providerIds: ['api-bible'],
     requiresLicense: true,
   },
@@ -22,12 +25,12 @@ export const translations: Translation[] = [
   {
     id: 'KJV',
     name: 'King James Version',
-    providerIds: ['api-bible'],
+    providerIds: ['public-domain'],
     requiresLicense: false,
   },
 ];
-export const defaultTranslationId = 'NASB';
-export const defaultComparisonTranslationId = 'CSB';
+export const defaultTranslationId = 'CSB';
+export const defaultComparisonTranslationId = 'NLT';
 
 export function supportedTranslationId(
   id: string,
@@ -61,7 +64,6 @@ export const bibleProviders: BibleProvider[] = [
     name: 'Bible Brain / Bible.is',
     capabilities: ['text', 'audio', 'video', 'language'],
   },
-  { id: 'esv', name: 'Crossway ESV API', capabilities: ['text'] },
   {
     id: 'public-domain',
     name: 'Public-domain sources',
@@ -108,5 +110,5 @@ export type {
   AIContext,
   SourceDocument,
   SourceCitation,
-} from './ai';
-export type { AIProvider } from './models';
+} from './ai.ts';
+export type { AIProvider } from './models.ts';

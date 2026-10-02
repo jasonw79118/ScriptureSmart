@@ -182,53 +182,40 @@ export function Connections() {
               bibleConnection?.translations.map((item) => item.id) ?? [],
             );
             const configured =
-              provider.id === 'esv'
-                ? availableIds.has('ESV')
+              provider.id === 'public-domain'
+                ? availableIds.has('KJV')
                 : provider.id === 'api-bible'
-                  ? ['NASB', 'CSB', 'NKJV', 'KJV'].some((id) =>
-                      availableIds.has(id),
-                    )
+                  ? ['CSB', 'NLT', 'NKJV'].some((id) => availableIds.has(id))
                   : false;
             return (
               <section className="panel connection-card" key={provider.id}>
                 <span className="provider-logo">▤</span>
                 <Badge>
-                  {provider.id === 'esv'
-                    ? 'Legacy route'
-                    : bibleStatus === 'checking'
-                      ? 'Checking connection'
-                      : configured
-                        ? 'Connected'
-                        : 'Setup needed'}
+                  {bibleStatus === 'checking'
+                    ? 'Checking connection'
+                    : configured
+                      ? 'Connected'
+                      : 'Setup needed'}
                 </Badge>
                 <h3>{provider.name}</h3>
                 <p>
                   {provider.id === 'api-bible'
-                    ? 'NASB, CSB, NKJV, and KJV are requested through API.Bible. Access depends on your account’s selected licenses.'
-                    : provider.id === 'esv'
-                      ? 'The existing Crossway ESV API adapter remains available for legacy requests; active study choices are NASB, CSB, NKJV, and KJV.'
+                    ? 'CSB, NLT, and NKJV are retrieved through API.Bible. Availability depends on the editions authorized for this Cloudflare key.'
+                    : provider.id === 'public-domain'
+                      ? 'KJV is retrieved from the public-domain Bible source; it does not use API.Bible.'
                       : `${provider.capabilities.join(' · ')}. Access depends on approved APIs and applicable rights.`}
                 </p>
                 {provider.id === 'api-bible' && (
                   <small>Cloudflare secret: API_BIBLE_KEY</small>
                 )}
-                {provider.id === 'esv' && (
-                  <small>Cloudflare secret: ESV_API_KEY</small>
-                )}
-                {provider.id === 'api-bible' || provider.id === 'esv' ? (
+                {provider.id === 'api-bible' ? (
                   <a
                     className="button secondary wide"
-                    href={
-                      provider.id === 'api-bible'
-                        ? 'https://api.bible/'
-                        : 'https://api.esv.org/'
-                    }
+                    href="https://api.bible/"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    {provider.id === 'api-bible'
-                      ? 'Open API.Bible account ↗'
-                      : 'Open Crossway ESV API ↗'}
+                    Open API.Bible account ↗
                   </a>
                 ) : (
                   <button

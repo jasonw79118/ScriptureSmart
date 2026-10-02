@@ -23,8 +23,8 @@ test('study chat gathers selected translation and sourced open research', async 
         available: true,
         provider: 'ScriptureSmart Bible providers',
         translations: [
-          { id: 'NASB', name: 'New American Standard Bible' },
           { id: 'CSB', name: 'Christian Standard Bible' },
+          { id: 'NLT', name: 'New Living Translation' },
           { id: 'NKJV', name: 'New King James Version' },
           { id: 'KJV', name: 'King James Version' },
         ],
@@ -35,9 +35,9 @@ test('study chat gathers selected translation and sourced open research', async 
     route.fulfill({
       json: {
         reference: 'Ephesians 1:3-14',
-        translationId: 'NASB',
+        translationId: 'CSB',
         text: 'He predestined us to adoption as sons and daughters.',
-        attribution: 'NASB mock edition',
+        attribution: 'CSB mock edition',
         sourceUrl: 'https://api.bible/',
         fumsToken: 'mock-view-token',
         rights: {
@@ -64,10 +64,10 @@ test('study chat gathers selected translation and sourced open research', async 
           reference: 'Ephesians 1:3-14',
           testament: 'new',
           selectedTranslation: {
-            id: 'NASB',
-            name: 'New American Standard Bible',
+            id: 'CSB',
+            name: 'Christian Standard Bible',
             text: 'He predestined us to adoption as sons and daughters.',
-            attribution: 'NASB mock edition',
+            attribution: 'CSB mock edition',
             sourceUrl: 'https://api.bible/',
             fumsToken: 'mock-view-token',
             rights: {
@@ -127,7 +127,7 @@ test('study chat gathers selected translation and sourced open research', async 
   await expect(page.getByText('Paul · people')).toBeVisible();
   expect(requestBody?.context).toMatchObject({
     passageReference: 'Ephesians 1:3–14',
-    translationIds: ['NASB', 'CSB'],
+    translationIds: ['CSB', 'NLT'],
   });
   expect(requestBody?.bible).toMatchObject({
     references: [

@@ -1,4 +1,5 @@
 import { referenceToUsfm } from './youversion.ts';
+import { apiBibleTranslationIds } from '../../src/domain/providers.ts';
 
 export interface LicensedBiblePassage {
   reference: string;
@@ -16,9 +17,7 @@ export interface LicensedBiblePassage {
   };
 }
 
-// NIV remains available to existing saved requests; only the four requested
-// editions are exposed as new study choices/status options.
-const apiBibleIds = ['NASB', 'CSB', 'NKJV', 'KJV', 'NIV'] as const;
+const apiBibleIds = apiBibleTranslationIds;
 const apiBibleRoot = 'https://rest.api.bible/v1';
 const apiBibleSite = 'https://api.bible/';
 
@@ -181,63 +180,5 @@ export async function retrieveApiBiblePassage({
     ...(record(body.meta) && typeof body.meta.fumsToken === 'string'
       ? { fumsToken: body.meta.fumsToken }
       : {}),
-  };
-}
-
-export async function retrieveEsvPassage({
-  apiKey,
-  reference,
-  transport = globalThis.fetch.bind(globalThis),
-}: {
-  apiKey?: string;
-  reference: string;
-  transport?: typeof fetch;
-}): Promise<LicensedBiblePassage> {
-  if (!apiKey?.trim()) throw Error('esv-not-configured');
-  const url = new URL('https://api.esv.org/v3/passage/text/');
-  url.searchParams.set('q', reference);
-  url.searchParams.set('include-passage-references', 'false');
-  url.searchParams.set('include-verse-numbers', 'true');
-  url.searchParams.set('include-footnotes', 'false');
-  url.searchParams.set('include-headings', 'false');
-  url.searchParams.set('include-short-copyright', 'true');
-  let response: Response;
-  try {
-    response = await transport(url, {
-      headers: { Authorization: `Token ${apiKey}` },
-      redirect: 'manual',
-      signal: AbortSignal.timeout(12000),
-    });
-  } catch {
-    throw Error('esv-unavailable');
-  }
-  if (!response.ok) throw Error('esv-unavailable');
-  let body: unknown;
-  try {
-    const raw = await response.text();
-    if (raw.length > 100000) throw Error('oversized');
-    body = JSON.parse(raw);
-  } catch {
-    throw Error('esv-unavailable');
-  }
-  if (!record(body) || !Array.isArray(body.passages))
-    throw Error('esv-unavailable');
-  const text = boundedText(body.passages[0], 50000);
-  const canonical = boundedText(body.canonical, 300) ?? reference;
-  if (!text) throw Error('esv-unavailable');
-  return {
-    reference: canonical,
-    translationId: 'ESV',
-    text,
-    attribution:
-      'ESV. Scripture quotations are from the ESV® Bible (The Holy Bible, English Standard Version®), © 2001 by Crossway, a publishing ministry of Good News Publishers. Used by permission. All rights reserved. The ESV text may not be quoted in any publication made available to the public by a Creative Commons license. The ESV may not be translated into any other language.',
-    sourceUrl: `https://www.esv.org/${encodeURIComponent(canonical)}/`,
-    rights: {
-      displayAllowed: true,
-      aiContextAllowed: false,
-      cachingAllowed: false,
-      localStorageAllowed: false,
-      commercialUseAllowed: false,
-    },
   };
 }

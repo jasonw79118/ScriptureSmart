@@ -262,6 +262,8 @@ export function AssistantPanel({
     const research = response?.bibleResearch;
     if (!research) return null;
     const selected = research.selectedTranslation;
+    const rightsSummary = (rights: NonNullable<typeof selected>['rights']) =>
+      `Rights: display ${rights.displayAllowed ? 'allowed' : 'unavailable'}; AI context ${rights.aiContextAllowed ? 'allowed' : 'not allowed'}; local saving ${rights.localStorageAllowed ? 'allowed' : 'not allowed'}; commercial use ${rights.commercialUseAllowed ? 'allowed' : 'not confirmed'}.`;
     return (
       <section
         className="bible-research-results"
@@ -275,11 +277,7 @@ export function AssistantPanel({
             </summary>
             <p className="preserve">{selected.text}</p>
             <small>{selected.attribution}</small>
-            <small>
-              Rights: display only; this text is not cached, saved locally, or
-              sent to AI. Commercial permission is not confirmed in this
-              connection.
-            </small>
+            <small>{rightsSummary(selected.rights)}</small>
           </details>
         ) : (
           <p>
@@ -293,11 +291,7 @@ export function AssistantPanel({
             </summary>
             <p className="preserve">{item.text}</p>
             <small>{item.attribution}</small>
-            <small>
-              Rights: display only; this text is not cached, saved locally, or
-              sent to AI. Commercial permission is not confirmed in this
-              connection.
-            </small>
+            <small>{rightsSummary(item.rights)}</small>
           </details>
         ))}
         <details>

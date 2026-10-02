@@ -6,13 +6,14 @@ import {
 import {
   listApiBibleTranslations,
   retrieveApiBiblePassage,
-  retrieveEsvPassage,
 } from './translationProviders.ts';
 import { AIError, isRecord, type AIErrorCode } from '../../src/domain/ai.ts';
 import { normalizeReference } from '../../src/domain/bible.ts';
 import { testamentForReference } from '../../src/domain/bible.ts';
+import { activeTranslationIds, apiBibleTranslationIds } from '../../src/domain/providers.ts';
 import { readRequest } from './validation.ts';
 import { retrieveOpenBibleResearch } from './freeUseBible.ts';
+import { retrieveKjvPassage } from './scripture.ts';
 import {
   generateWithBinding,
   type AIBinding,
@@ -31,7 +32,6 @@ export interface Env extends ModelConfig {
   ALLOWED_ORIGINS: string;
   YOUVERSION_API?: string;
   API_BIBLE_KEY?: string;
-  ESV_API_KEY?: string;
 }
 const statusCodes: Record<AIErrorCode, number> = {
   'auth-unavailable': 503,
@@ -196,14 +196,19 @@ export function createWorker(
           apiKey: env.API_BIBLE_KEY,
           transport,
         });
-        const translations = apiBibleTranslations.filter((item) =>
-          ['NASB', 'CSB', 'NKJV', 'KJV'].includes(item.id),
-        );
+        const translations = [
+          { id: 'KJV', name: 'King James Version' },
+          ...apiBibleTranslations.filter((item) =>
+            apiBibleTranslationIds.includes(
+              item.id as (typeof apiBibleTranslationIds)[number],
+            ),
+          ),
+        ];
         return json({
           available: ready(env) && translations.length > 0,
           provider: 'ScriptureSmart Bible providers',
           translations,
-          unavailableTranslationIds: ['NASB', 'CSB', 'NKJV', 'KJV'].filter(
+          unavailableTranslationIds: apiBibleTranslationIds.filter(
             (id) => !translations.some((item) => item.id === id),
           ),
         });
@@ -232,13 +237,12 @@ export function createWorker(
                 translationId,
                 transport,
               })
-            : translationId === 'ESV'
-              ? await retrieveEsvPassage({
-                  apiKey: env.ESV_API_KEY,
+            : translationId === 'KJV'
+              ? await retrieveKjvPassage({
                   reference: normalized,
                   transport,
                 })
-              : await retrieveApiBiblePassage({
+            : await retrieveApiBiblePassage({
                   apiKey: env.API_BIBLE_KEY,
                   reference: normalized,
                   translationId,
@@ -304,25 +308,33 @@ export function createWorker(
         if (
           input.bible &&
           reference &&
-          ['NASB', 'CSB', 'NKJV', 'KJV'].includes(translationId)
+          activeTranslationIds.includes(
+            translationId as (typeof activeTranslationIds)[number],
+          )
         ) {
           const testament = testamentForReference(reference);
           if (testament) {
             const translationIds = (
               input.context?.translationIds ?? [translationId]
             )
-              .filter((id) => ['NASB', 'CSB', 'NKJV', 'KJV'].includes(id))
+              .filter((id) =>
+                activeTranslationIds.includes(
+                  id as (typeof activeTranslationIds)[number],
+                ),
+              )
               .slice(0, 4);
             const [selectedResults, openResult] = await Promise.all([
               Promise.allSettled(
                 (translationIds.length ? translationIds : [translationId]).map(
                   (id) =>
-                    retrieveApiBiblePassage({
-                      apiKey: env.API_BIBLE_KEY,
-                      reference,
-                      translationId: id,
-                      transport,
-                    }),
+                    id === 'KJV'
+                      ? retrieveKjvPassage({ reference, transport })
+                      : retrieveApiBiblePassage({
+                          apiKey: env.API_BIBLE_KEY,
+                          reference,
+                          translationId: id,
+                          transport,
+                        }),
                 ),
               ),
               Promise.allSettled([
@@ -333,27 +345,27 @@ export function createWorker(
             const researchResult = openResult[0];
             const toSelected = (
               item: PromiseSettledResult<
-                Awaited<ReturnType<typeof retrieveApiBiblePassage>>
+                Awaited<ReturnType<typeof retrieveKjvPassage>>
+                | Awaited<ReturnType<typeof retrieveApiBiblePassage>>
               >,
-              id: string,
             ) =>
               item.status === 'fulfilled'
                 ? {
-                    id,
-                    name: id,
+                    id: item.value.translationId,
+                    name: item.value.translationId,
                     text: item.value.text,
                     attribution: item.value.attribution,
                     sourceUrl: item.value.sourceUrl,
                     rights: item.value.rights,
-                    ...(item.value.fumsToken
+                    ...('fumsToken' in item.value && item.value.fumsToken
                       ? { fumsToken: item.value.fumsToken }
                       : {}),
                   }
                 : null;
             const comparisonTranslations = selectedResults
               .slice(1)
-              .flatMap((item, index) => {
-                const translated = toSelected(item, translationIds[index + 1]);
+              .flatMap((item) => {
+                const translated = toSelected(item);
                 return translated ? [translated] : [];
               });
             if (
@@ -366,12 +378,10 @@ export function createWorker(
                 testament,
                 ...(toSelected(
                   selectedResult,
-                  translationIds[0] ?? translationId,
                 )
                   ? {
                       selected: toSelected(
                         selectedResult,
-                        translationIds[0] ?? translationId,
                       )!,
                     }
                   : {}),

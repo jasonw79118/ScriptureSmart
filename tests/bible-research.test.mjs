@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { retrieveOpenBibleResearch } from '../server/ai/freeUseBible.ts';
 import { retrieveApiBiblePassage } from '../server/ai/translationProviders.ts';
+import { retrieveKjvPassage } from '../server/ai/scripture.ts';
 import { testamentForReference } from '../src/domain/bible.ts';
 import { reportApiBibleViews } from '../src/ai/fums.ts';
 
@@ -29,7 +30,7 @@ test('API.Bible FUMS view tokens are deduplicated and reported only by the brows
 test('API.Bible discovers each active translation from the authorized Bible list', async () => {
   const requested = [];
   const responses = [];
-  for (const id of ['NASB', 'CSB', 'NKJV', 'KJV']) {
+  for (const id of ['CSB', 'NLT', 'NKJV']) {
     const passage = await retrieveApiBiblePassage({
       apiKey: 'private-server-key',
       reference: 'John 3:16',
@@ -59,7 +60,7 @@ test('API.Bible discovers each active translation from the authorized Bible list
     assert.equal(passage.translationId, id);
     assert.match(requested.at(-1).url, new RegExp(`discovered-${id}`));
   }
-  assert.equal(requested.length, 8);
+  assert.equal(requested.length, 6);
   assert.ok(
     requested.every(
       ({ init }) => init.headers['api-key'] === 'private-server-key',
@@ -68,12 +69,42 @@ test('API.Bible discovers each active translation from the authorized Bible list
   assert.ok(!JSON.stringify(responses).includes('private-server-key'));
 });
 
+test('KJV passage retrieval uses public-domain bible-api.com without an API.Bible key', async () => {
+  const passage = await retrieveKjvPassage({
+    reference: 'Romans 1:1-2',
+    transport: async (url) => {
+      assert.match(String(url), /translation=kjv/);
+      return Response.json({
+        translation_id: 'kjv',
+        verses: [
+          {
+            book_name: 'Romans',
+            chapter: 1,
+            verse: 1,
+            text: 'Paul, a servant of Jesus Christ.',
+          },
+          {
+            book_name: 'Romans',
+            chapter: 1,
+            verse: 2,
+            text: 'Which he had promised afore.',
+          },
+        ],
+      });
+    },
+  });
+  assert.equal(passage.translationId, 'KJV');
+  assert.equal(passage.rights.aiContextAllowed, true);
+  assert.equal(passage.rights.commercialUseAllowed, true);
+  assert.match(passage.text, /promised afore/);
+});
+
 test('unlicensed API.Bible versions fail without revealing upstream errors', async () => {
   await assert.rejects(
     retrieveApiBiblePassage({
       apiKey: 'private-server-key',
       reference: 'John 3:16',
-      translationId: 'NASB',
+      translationId: 'CSB',
       transport: async () => new Response('license denied', { status: 403 }),
     }),
     /api-bible-license-required/,

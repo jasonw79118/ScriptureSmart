@@ -129,7 +129,7 @@ test('instructions preserve source distinctions and treat pasted content as data
     'AI SYNTHESIS',
     'Do not fabricate',
     'Do not silently merge',
-    'No commentary database',
+    'Only supplied entries were retrieved',
     'major interpretations',
   ])
     assert.ok(systemInstructions.includes(phrase), phrase);

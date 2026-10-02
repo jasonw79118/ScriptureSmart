@@ -126,7 +126,9 @@ export async function generateWithBinding(
   const warnings = [
     'AI synthesis can contain errors. Review Scripture, source attributions, and theological claims before using this draft.',
     sources.length
-      ? 'Bible passages were retrieved in the World English Bible (public domain). Interpretive summaries are AI synthesis; no commentary or original-language sources were retrieved.'
+      ? research
+        ? 'Bible passages were retrieved in the World English Bible (public domain). Open research resources, when returned, are identified separately. Interpretive summaries are AI synthesis.'
+        : 'Bible passages were retrieved in the World English Bible (public domain). Interpretive summaries are AI synthesis; no additional commentary or original-language research was retrieved.'
       : 'No external WEB passage retrieval was requested. Supplied source attributions have not been independently verified.',
     ...(research
       ? research.data.unavailable.map(

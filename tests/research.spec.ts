@@ -1,0 +1,143 @@
+import { test, expect } from '@playwright/test';
+
+test('study chat gathers selected translation and sourced open research', async ({
+  page,
+}) => {
+  await page.route('**/v1/account', (route) =>
+    route.fulfill({
+      status: 200,
+      json: {
+        $id: 'research-user',
+        email: 'member@example.test',
+        emailVerification: true,
+        status: true,
+      },
+    }),
+  );
+  await page.route('**/v1/account/jwts', (route) =>
+    route.fulfill({ status: 201, json: { jwt: 'mock-user-jwt' } }),
+  );
+  await page.route('**/api/bible/status', (route) =>
+    route.fulfill({
+      json: {
+        available: true,
+        provider: 'ScriptureSmart Bible providers',
+        translations: [
+          { id: 'NASB', name: 'New American Standard Bible' },
+          { id: 'CSB', name: 'Christian Standard Bible' },
+          { id: 'NKJV', name: 'New King James Version' },
+          { id: 'KJV', name: 'King James Version' },
+        ],
+      },
+    }),
+  );
+  await page.route('**/api/bible/passage?*', (route) =>
+    route.fulfill({
+      json: {
+        reference: 'Ephesians 1:3-14',
+        translationId: 'NASB',
+        text: 'He predestined us to adoption as sons and daughters.',
+        attribution: 'NASB mock edition',
+        sourceUrl: 'https://api.bible/',
+        fumsToken: 'mock-view-token',
+        rights: {
+          displayAllowed: true,
+          aiContextAllowed: false,
+          cachingAllowed: false,
+          localStorageAllowed: false,
+          commercialUseAllowed: false,
+        },
+      },
+    }),
+  );
+  let requestBody: Record<string, unknown> | undefined;
+  await page.route('**/api/ai/generate', (route) => {
+    requestBody = route.request().postDataJSON();
+    return route.fulfill({
+      json: {
+        text: 'Paul describes adoption as a purpose of God’s saving work.',
+        provider: 'scripturesmart-ai',
+        model: 'mock-model',
+        createdAt: '2026-10-02T12:00:00Z',
+        kind: 'AI SYNTHESIS',
+        bibleResearch: {
+          reference: 'Ephesians 1:3-14',
+          testament: 'new',
+          selectedTranslation: {
+            id: 'NASB',
+            name: 'New American Standard Bible',
+            text: 'He predestined us to adoption as sons and daughters.',
+            attribution: 'NASB mock edition',
+            sourceUrl: 'https://api.bible/',
+            fumsToken: 'mock-view-token',
+            rights: {
+              displayAllowed: true,
+              aiContextAllowed: false,
+              cachingAllowed: false,
+              localStorageAllowed: false,
+              commercialUseAllowed: false,
+            },
+          },
+          comparisonTranslations: [],
+          openTranslation: {
+            id: 'BSB',
+            verses: [{ verse: 5, text: 'He predestined us for adoption.' }],
+          },
+          crossReferences: [
+            { reference: 'Romans 8:15' },
+            { reference: 'Galatians 4:5' },
+          ],
+          originalLanguage: {
+            language: 'Greek',
+            words: [
+              {
+                verse: 5,
+                text: 'predestined',
+                lemma: 'proorizō',
+                strongs: ['G4309'],
+                morph: 'V-AAI-3S',
+              },
+            ],
+          },
+          commentaries: [],
+          entities: [{ type: 'people', name: 'Paul' }],
+          unavailable: ['Matching commentary'],
+          source: 'Free Use Bible API',
+        },
+      },
+    });
+  });
+
+  await page.goto('/#study');
+  const prompt =
+    'Compare adoption in Ephesians 1 with other areas Paul discussed adoption. Is adoption predetermined?';
+  await page.getByRole('textbox', { name: 'Study question' }).fill(prompt);
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
+
+  await expect(
+    page.getByText('Passage research · Ephesians 1:3-14'),
+  ).toBeVisible();
+  await expect(page.getByText('Romans 8:15')).toBeVisible();
+  await expect(page.getByText('Galatians 4:5')).toBeVisible();
+  await expect(page.getByText('Greek → English (1)')).toBeVisible();
+  await page
+    .locator('summary')
+    .filter({ hasText: 'People, places, and events' })
+    .click();
+  await expect(page.getByText('Paul · people')).toBeVisible();
+  expect(requestBody?.context).toMatchObject({
+    passageReference: 'Ephesians 1:3–14',
+    translationIds: ['NASB', 'CSB'],
+  });
+  expect(requestBody?.bible).toMatchObject({
+    references: [
+      'Ephesians 1:3-14',
+      'Romans 8:14-30',
+      'Romans 9:1-5',
+      'Galatians 4:1-7',
+    ],
+  });
+  expect(JSON.stringify(requestBody)).not.toContain(
+    'He predestined us to adoption as sons and daughters.',
+  );
+});

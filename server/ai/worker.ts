@@ -250,7 +250,10 @@ export function createWorker(
             error instanceof AIError
               ? error
               : error instanceof Error &&
-                  error.message === 'api-bible-license-required'
+                  [
+                    'api-bible-license-required',
+                    'api-bible-not-configured',
+                  ].includes(error.message)
                 ? new AIError('translation-unavailable')
                 : new AIError('scripture-unavailable');
           return json(
@@ -276,9 +279,21 @@ export function createWorker(
         const userId = await verifiedUser(request, env, transport);
         await checkAllowance(env, userId);
         const input = await readRequest(request);
-        const sources = input.bible
-          ? await retrievePassages(input.bible.references, transport)
-          : [];
+        let sources: Awaited<ReturnType<typeof retrievePassages>> = [];
+        let webRetrievalFailed = false;
+        if (input.bible) {
+          try {
+            sources = await retrievePassages(input.bible.references, transport);
+          } catch (error) {
+            if (
+              !(error instanceof AIError) ||
+              error.code !== 'scripture-unavailable'
+            )
+              throw error;
+            // WEB is supplemental. Continue to licensed translation and open research.
+            webRetrievalFailed = true;
+          }
+        }
         const reference = normalizeReference(
           input.context?.passageReference ?? input.bible?.references[0] ?? '',
         );
@@ -393,11 +408,20 @@ export function createWorker(
         );
         return json({
           ...result,
-          ...(researchFailure
+          ...(researchFailure || webRetrievalFailed
             ? {
                 warnings: [
                   ...(result.warnings ?? []),
-                  'The selected translation or open research could not be fully loaded. AI synthesis continued with available sources.',
+                  ...(webRetrievalFailed
+                    ? [
+                        'The World English Bible source did not load. ScriptureSmart continued with other available Bible research.',
+                      ]
+                    : []),
+                  ...(researchFailure
+                    ? [
+                        'The selected translation or open research could not be fully loaded. AI synthesis continued with available sources.',
+                      ]
+                    : []),
                 ],
               }
             : {}),

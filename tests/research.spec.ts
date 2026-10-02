@@ -140,4 +140,18 @@ test('study chat gathers selected translation and sourced open research', async 
   expect(JSON.stringify(requestBody)).not.toContain(
     'He predestined us to adoption as sons and daughters.',
   );
+
+  await page.setViewportSize({ width: 900, height: 1000 });
+  const positions = await page.evaluate(() => {
+    const resources = document
+      .querySelector('.study-tool-rail')!
+      .getBoundingClientRect();
+    const assistant = document
+      .querySelector('.study-desk-layout > .ai-assistant')!
+      .getBoundingClientRect();
+    return { resourcesTop: resources.top, assistantBottom: assistant.bottom };
+  });
+  expect(positions.resourcesTop).toBeGreaterThanOrEqual(
+    positions.assistantBottom,
+  );
 });

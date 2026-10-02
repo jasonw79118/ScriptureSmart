@@ -350,6 +350,24 @@ test('an API.Bible edition without current authorization reports a safe unavaila
   assert.equal(response.status, 404);
   assert.equal((await response.json()).code, 'translation-unavailable');
 });
+test('an unconfigured API.Bible key reports a translation setup error', async () => {
+  const response = await createWorker(async (url) =>
+    String(url).includes('/account') ? verified() : Response.json({ data: [] }),
+  ).fetch(
+    new Request(
+      'https://worker.example.test/api/bible/passage?reference=Romans%201%3A1-20&translationId=NASB',
+      {
+        headers: {
+          Origin: 'https://scripture.example.test',
+          Authorization: 'Bearer valid-user-jwt',
+        },
+      },
+    ),
+    env(),
+  );
+  assert.equal(response.status, 404);
+  assert.equal((await response.json()).code, 'translation-unavailable');
+});
 test('Bible study AI receives open research while licensed translation text stays outside model context', async () => {
   let modelInput = '';
   const worker = createWorker(async (url) => {
@@ -462,6 +480,74 @@ test('Bible study AI receives open research while licensed translation text stay
   assert.ok(modelInput.includes('Genesis 1:1'));
   assert.ok(!modelInput.includes('COPYRIGHTED SELECTED TEXT'));
   assert.ok(!JSON.stringify(body).includes('private-runtime-key'));
+});
+test('AI study continues with Free Use research when the WEB endpoint fails', async () => {
+  let modelInput = '';
+  const worker = createWorker(async (url) => {
+    const value = String(url);
+    const path = new URL(value).pathname;
+    if (path.endsWith('/account')) return verified();
+    if (value.includes('bible-api.com/')) throw Error('WEB endpoint offline');
+    if (path.includes('/v1/bibles')) return Response.json({ data: [] });
+    if (path.endsWith('/BSB/ROM/1.json'))
+      return Response.json({
+        chapter: {
+          content: [
+            {
+              type: 'verse',
+              number: 1,
+              content: ['Paul, a servant of Christ Jesus.'],
+            },
+          ],
+        },
+      });
+    if (path.endsWith('/d/open-cross-ref/ROM/1.json'))
+      return Response.json({
+        chapter: {
+          content: [
+            { verse: 1, references: [{ book: 'ACT', chapter: 9, verse: 15 }] },
+          ],
+        },
+      });
+    if (path.endsWith('/BSB/ROM/1.words.json'))
+      return Response.json({ verses: {} });
+    if (path.endsWith('/available_commentaries.json'))
+      return Response.json({ commentaries: [] });
+    if (path.endsWith('/d/theographic/ROM/1.json'))
+      return Response.json({ chapter: { people: [], places: [], events: [] } });
+    throw Error(`Unexpected request ${value}`);
+  });
+  const response = await worker.fetch(
+    request({
+      taskType: 'research',
+      prompt: 'Tell me about Romans 1:1-20.',
+      bible: { references: ['Romans 1:1-20'] },
+      context: {
+        passageReference: 'Romans 1:1-20',
+        translationIds: ['NASB'],
+      },
+    }),
+    env({
+      AI: {
+        run: async (_model, args) => {
+          modelInput = args.messages[1].content;
+          return { response: result.text };
+        },
+      },
+    }),
+  );
+  const body = await response.json();
+  assert.equal(response.status, 200, JSON.stringify(body));
+  assert.equal(
+    body.bibleResearch.openTranslation.verses[0].text,
+    'Paul, a servant of Christ Jesus.',
+  );
+  assert.equal(body.bibleResearch.crossReferences[0].reference, 'Acts 9:15');
+  assert.ok(
+    body.warnings.some((warning) => warning.includes('World English Bible')),
+  );
+  assert.ok(modelInput.includes('Paul, a servant of Christ Jesus.'));
+  assert.ok(modelInput.includes('openBibleResearch'));
 });
 test('worker fails closed when configuration or limit bindings are missing', async () => {
   const worker = createWorker(verified);

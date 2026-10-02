@@ -141,7 +141,7 @@ export const aiErrors = {
   'scripture-unavailable':
     'The Bible text could not be retrieved. Please retry or choose fewer passages. No source-based answer was generated.',
   'translation-unavailable':
-    'This API.Bible account does not currently have access to the selected translation. Check your licensed versions in Connections.',
+    'This API.Bible translation is not available right now. Check Bible connections and ask your site administrator to verify the backend setup and edition license.',
   'auth-unavailable':
     'ScriptureSmart AI could not verify your current account session. The account service may be unavailable; please retry. This does not necessarily mean you are signed out.',
   'setup-required':

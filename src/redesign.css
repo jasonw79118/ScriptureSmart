@@ -2010,15 +2010,27 @@ main#main-content {
     margin-left: 236px;
   }
   .study-desk-layout {
-    grid-template-columns: minmax(165px, 190px) minmax(0, 1fr);
-    grid-template-areas: 'resources scripture' 'assistant scripture';
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'scripture' 'assistant' 'resources';
+    align-items: stretch;
   }
   .study-tool-rail {
-    max-height: 46vh;
+    position: static;
+    max-height: none;
+    overflow: visible;
+    grid-area: resources;
+    order: 3;
   }
   .study-desk-layout > .ai-assistant {
     position: static;
-    max-height: 48vh;
+    max-height: none;
+    overflow: visible;
+    grid-area: assistant;
+    order: 2;
+  }
+  .study-reader {
+    grid-area: scripture;
+    order: 1;
   }
   .studio-workspace {
     grid-template-columns: minmax(0, 1fr) minmax(270px, 340px);

@@ -12,6 +12,9 @@ import {
 } from '../server/ai/youversion.ts';
 import { validateRequest } from '../server/ai/validation.ts';
 import { generateWithBinding } from '../server/ai/provider.ts';
+import {
+  retrieveApiBiblePassage,
+} from '../server/ai/translationProviders.ts';
 import { parseAIResponse } from '../src/domain/ai.ts';
 
 test('adoption questions select the curated Pauline passages, other topics use explicit references', () => {
@@ -35,7 +38,7 @@ test('Bible request boundary rejects URLs, excessive lists and forged provider c
   for (const bible of [
     { references: ['https://evil.test'] },
     { references: Array(7).fill('John 1') },
-    { references: ['John 1'], translation: 'ESV' },
+    { references: ['John 1'], translation: 'NASB' },
   ])
     assert.throws(() => validateRequest({ ...base, bible }));
   assert.deepEqual(
@@ -179,4 +182,38 @@ test('YouVersion passage retrieval converts references and keeps the app key ser
       translationId: 'UNKNOWN',
     }),
   );
+});
+
+test('API.Bible resolves only licensed versions and requests plain passage text server-side', async () => {
+  const calls = [];
+  const passage = await retrieveApiBiblePassage({
+    apiKey: 'private-api-bible-key',
+    reference: 'John 3:16-17',
+    translationId: 'NKJV',
+    transport: async (url, init) => {
+      calls.push({ url: String(url), init });
+      if (String(url).includes('/bibles?'))
+        return Response.json({
+          data: [{ id: 'nkjv-version', abbreviation: 'NKJV', name: 'New King James Version' }],
+        });
+      return Response.json({
+        data: {
+          content: '16 For God so loved the world. 17 For God did not send His Son.',
+          reference: 'John 3:16-17',
+          copyright: 'Scripture quotations are from the NKJV.',
+        },
+        meta: { fumsToken: 'fums-view-token' },
+      });
+    },
+  });
+  assert.equal(calls.length, 2);
+  assert.match(calls[0].url, /abbreviation=NKJV/);
+  assert.equal(calls[0].init.headers['api-key'], 'private-api-bible-key');
+  assert.match(calls[1].url, /JHN\.3\.16-JHN\.3\.17/);
+  assert.match(calls[1].url, /content-type=text/);
+  assert.match(calls[1].url, /fums-version=3/);
+  assert.equal(passage.translationId, 'NKJV');
+  assert.match(passage.attribution, /NKJV/);
+  assert.equal(passage.fumsToken, 'fums-view-token');
+  assert.ok(!JSON.stringify(passage).includes('private-api-bible-key'));
 });

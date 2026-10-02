@@ -109,6 +109,14 @@ export function referenceToUsfm(reference: string): string | null {
   return `${book}.${chapter}.${firstVerse}${lastVerse ? `-${lastVerse}` : ''}`;
 }
 
+export function bookNameFromUsfm(usfm: string): string | null {
+  const code = /^([A-Z0-9]{3})\./.exec(usfm)?.[1];
+  return code
+    ? (Object.entries(bookUsfm).find(([, value]) => value === code)?.[0] ??
+        null)
+    : null;
+}
+
 function plainText(value: unknown, max: number): string | null {
   return typeof value === 'string' && value.trim() && value.length <= max
     ? value.trim()

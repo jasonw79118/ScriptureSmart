@@ -32,6 +32,12 @@ No deployment, external AI connection, or unauthenticated development bypass is 
    - `AI_USER_LIMIT`: six requests per user per minute. `AI_GLOBAL_LIMIT`: sixty requests per minute across the Worker, including failed authentication attempts. Choose namespace IDs unused by unrelated rate-limit bindings in your Cloudflare account.
 5. In Appwrite, enable the intended account login method and add the frontend hostname as a Web platform. Test account verification and `account.createJWT()`.
 
+### Bible provider runtime secret
+
+The current GitHub Actions workflow deploys only GitHub Pages. A repository secret is not automatically available to this Cloudflare Worker, and this workflow does not transfer it. The Worker expects the existing secret name `API_BIBLE_KEY`.
+
+To configure it without placing the value in source or a command argument, open the Cloudflare dashboard, select the `scripturesmart-ai` Worker, then go to **Settings → Variables and Secrets → Add → Secret**. Enter `API_BIBLE_KEY` as the name and paste the value into the masked value field, then save and redeploy the Worker. You can also run `npx wrangler secret put API_BIBLE_KEY` in an authenticated terminal; Wrangler prompts for the value. Never put it in `VITE_*`, `.env.example`, a committed file, or a build log. No GitHub workflow currently deploys or updates this Worker.
+
 ## Local development
 
 In separate terminals:
@@ -92,9 +98,13 @@ The Worker has no persistence for prompts or responses and does not log JWTs, co
 
 ## Bible retrieval
 
-Study requests may include a `bible.references` list of one to six validated references. After authentication and rate limiting, `scripture.ts` retrieves WEB text from bible-api.com, validates translation/book/chapter/verse identity, and passes it separately as trusted retrieval provenance. Client-supplied source claims remain unverified. Response `scriptureSources` is created by the server, not copied from model output. It supplies the UI's expandable text and source links.
+Study requests may include a `bible.references` list of one to six validated references. After authentication and rate limiting, `scripture.ts` retrieves WEB text from bible-api.com, validates translation/book/chapter/verse identity, and passes it separately as trusted retrieval provenance. The active translation choices are CSB, NLT, NKJV, and KJV. API.Bible supplies the licensed editions; public-domain KJV is retrieved separately from bible-api.com. Licensed selected text is returned for display but excluded from the Workers AI prompt. Public-domain KJV text may be included in model context.
 
-Only Bible references go to the provider. Redirects fail closed. Retrieval shares a 12-second timeout and uses a bounded isolate-local public-text cache. No commentary, Greek lexicon, or exhaustive topical search is connected. See the main README for feature scope and provider limits.
+The open research adapter queries Free Use Bible API chapter text, OpenBible.info cross references, commentary indexes/chapters, Theographic chapter entities, and BSB word annotations where available. It uses bounded isolate-local caching for public research data only, per-source timeouts, and independent failure handling. Returned original-language annotations can include Strong's IDs, lemma, morphology, and English-word anchors. The source does not guarantee original-script forms, transliterations, glosses, or annotations in every chapter; missing fields stay unavailable. Commentary excerpts are source data, separate from generated analysis.
+
+The active Bible selectors are CSB, NLT, NKJV, and KJV. API.Bible authorization for CSB, NLT, and NKJV is discovered dynamically from `/v1/bibles`; only returned, licensed versions are listed. Bible IDs and metadata are not cached, avoiding cross-key license staleness and secret-derived cache keys. Licensed passage text remains request-scoped, is display-only, and is excluded from AI context. KJV is public-domain and uses a separate source with rights permitting display, caching, and AI context. Other YouVersion adapters remain available for legacy requests but are not offered as active study choices.
+
+API.Bible passage calls request `fums-version=3` and return its FUMS token to the browser. The browser loads the official FUMS v3 tracker, configures the authenticated user ID for hashing by that tracker, and reports the token with `trackView` after the passage is displayed. See [API.Bible Fair Use documentation](https://docs.api.bible/guides/fair-use/).
 
 Operator live check: `node scripts/check-live-bible-study.mjs` retrieves the four adoption passages and runs the example question through the model; it incurs model usage and is excluded from automated tests.
 

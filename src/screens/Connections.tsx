@@ -16,16 +16,15 @@ export function Connections() {
   const [bibleStatus, setBibleStatus] = useState<
     'checking' | 'ready' | 'unavailable'
   >('checking');
-  const [youVersion, setYouVersion] = useState<BibleProviderStatus | null>(
-    null,
-  );
+  const [bibleConnection, setBibleConnection] =
+    useState<BibleProviderStatus | null>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const controller = new AbortController();
     void getBibleProviderStatus(controller.signal)
       .then((status) => {
-        setYouVersion(status);
+        setBibleConnection(status);
         setBibleStatus(status.available ? 'ready' : 'unavailable');
       })
       .catch(() => setBibleStatus('unavailable'));
@@ -137,7 +136,7 @@ export function Connections() {
       </div>
       <div className="connection-grid bible-connections">
         <section className="panel connection-card">
-          <span className="provider-logo">YV</span>
+          <span className="provider-logo">✝</span>
           <Badge>
             {bibleStatus === 'checking'
               ? 'Checking connection'
@@ -145,24 +144,31 @@ export function Connections() {
                 ? 'Connected'
                 : 'Needs server setup'}
           </Badge>
-          <h3>YouVersion</h3>
+          <h3>Available Bible text</h3>
           <p>
-            Bible text is retrieved through ScriptureSmart&apos;s secure server
-            connection. The app key stays off member devices.
+            Bible content is retrieved through ScriptureSmart&apos;s secure
+            server connections. Provider keys stay off member devices.
           </p>
           <strong role="status">
             {bibleStatus === 'checking'
-              ? 'Checking YouVersion...'
+              ? 'Checking Bible providers...'
               : bibleStatus === 'ready'
-                ? 'YouVersion passage lookup is available.'
-                : 'YouVersion passage lookup is unavailable.'}
+                ? 'At least one Bible text provider is ready.'
+                : 'No Bible text providers are connected yet.'}
           </strong>
-          {youVersion?.translations.length ? (
+          {bibleConnection?.translations.length ? (
             <p className="muted">
               Available translations:{' '}
-              {youVersion.translations
+              {bibleConnection.translations
                 .map((translation) => translation.id)
                 .join(', ')}
+            </p>
+          ) : null}
+          {bibleConnection?.unavailableTranslationIds?.length ? (
+            <p className="muted">
+              Not detected for the current API.Bible key (or temporarily
+              unreachable):{' '}
+              {bibleConnection.unavailableTranslationIds.join(', ')}.
             </p>
           ) : null}
           <a className="button primary wide" href="#study">
@@ -171,24 +177,57 @@ export function Connections() {
         </section>
         {bibleProviders
           .filter((provider) => provider.id !== 'youversion')
-          .map((provider) => (
-            <section className="panel connection-card" key={provider.id}>
-              <span className="provider-logo">▤</span>
-              <Badge>Planned integration</Badge>
-              <h3>{provider.name}</h3>
-              <p>
-                {provider.capabilities.join(' · ')}
-                <br />
-                Access depends on approved APIs and applicable rights.
-              </p>
-              <button
-                className="button secondary wide"
-                onClick={() => setSelected(provider.name)}
-              >
-                Connection details →
-              </button>
-            </section>
-          ))}
+          .map((provider) => {
+            const availableIds = new Set(
+              bibleConnection?.translations.map((item) => item.id) ?? [],
+            );
+            const configured =
+              provider.id === 'public-domain'
+                ? availableIds.has('KJV')
+                : provider.id === 'api-bible'
+                  ? ['CSB', 'NLT', 'NKJV'].some((id) => availableIds.has(id))
+                  : false;
+            return (
+              <section className="panel connection-card" key={provider.id}>
+                <span className="provider-logo">▤</span>
+                <Badge>
+                  {bibleStatus === 'checking'
+                    ? 'Checking connection'
+                    : configured
+                      ? 'Connected'
+                      : 'Setup needed'}
+                </Badge>
+                <h3>{provider.name}</h3>
+                <p>
+                  {provider.id === 'api-bible'
+                    ? 'CSB, NLT, and NKJV are retrieved through API.Bible. Availability depends on the editions authorized for this Cloudflare key.'
+                    : provider.id === 'public-domain'
+                      ? 'KJV is retrieved from the public-domain Bible source; it does not use API.Bible.'
+                      : `${provider.capabilities.join(' · ')}. Access depends on approved APIs and applicable rights.`}
+                </p>
+                {provider.id === 'api-bible' && (
+                  <small>Cloudflare secret: API_BIBLE_KEY</small>
+                )}
+                {provider.id === 'api-bible' ? (
+                  <a
+                    className="button secondary wide"
+                    href="https://api.bible/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Open API.Bible account ↗
+                  </a>
+                ) : (
+                  <button
+                    className="button secondary wide"
+                    onClick={() => setSelected(provider.name)}
+                  >
+                    Connection details →
+                  </button>
+                )}
+              </section>
+            );
+          })}
       </div>
       <section className="panel">
         <h2>

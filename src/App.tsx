@@ -18,6 +18,7 @@ import {
 } from './Screens';
 import './App.css';
 import './community/community.css';
+import './redesign.css';
 import { useCommunity } from './community/CommunityContext';
 import { ChurchPage } from './community/ChurchPage';
 import { LoginPage } from './community/LoginPage';
@@ -25,6 +26,7 @@ import { Onboarding } from './community/Onboarding';
 import { GroupFinder } from './community/GroupFinder';
 import type { ModuleKey } from './community/models';
 import { GroupsPage } from './community/GroupsPage';
+import { ChurchImage } from './community/ChurchBrand';
 import {
   validDrafts,
   validNotes,
@@ -35,9 +37,8 @@ import { navigate, timestamp } from './utils';
 import {
   defaultComparisonTranslationId,
   defaultTranslationId,
-  supportedComparisonIds,
-  supportedTranslationId,
 } from './domain/providers';
+import { getBibleProviderStatus } from './ai/bibleClient';
 export type Route =
   | 'onboarding'
   | 'find-group'
@@ -55,12 +56,12 @@ export type Route =
   | 'connections'
   | 'settings';
 const nav: { id: Route; label: string; icon: string }[] = [
-  { id: 'dashboard', label: 'Home', icon: 'âŒ‚' },
-  { id: 'study', label: 'Study', icon: 'â–¤' },
-  { id: 'research', label: 'Explore', icon: 'âŒ•' },
-  { id: 'sermons', label: 'Create', icon: 'âœ' },
-  { id: 'groups', label: 'Groups', icon: 'â™§' },
-  { id: 'library', label: 'Library', icon: 'â–±' },
+  { id: 'dashboard', label: 'Home', icon: 'Home' },
+  { id: 'study', label: 'Study', icon: 'Book' },
+  { id: 'research', label: 'Explore', icon: 'Search' },
+  { id: 'sermons', label: 'Create', icon: 'Write' },
+  { id: 'groups', label: 'Groups', icon: 'Group' },
+  { id: 'library', label: 'Library', icon: 'Library' },
 ];
 const allRoutes: Route[] = [
   ...nav.map((n) => n.id),
@@ -83,9 +84,75 @@ function routeFromHash(): Route {
   const route = location.hash.slice(1).split('/')[0];
   return allRoutes.includes(route as Route) ? (route as Route) : 'dashboard';
 }
+function NavGlyph({ name }: { name: string }) {
+  const paths: Record<string, ReactNode> = {
+    Home: (
+      <>
+        <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z" />
+      </>
+    ),
+    Book: (
+      <>
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 0 4 22z" />
+        <path d="M4 5.5v14A2.5 2.5 0 0 1 6.5 17H20" />
+      </>
+    ),
+    Search: (
+      <>
+        <circle cx="10.8" cy="10.8" r="6.8" />
+        <path d="m16 16 5 5" />
+        <path d="M8 11h5M10.5 8.5v5" />
+      </>
+    ),
+    Write: (
+      <>
+        <path d="m4 16.5-.9 4.4 4.4-.9L20 7.5 16.5 4z" />
+        <path d="m14.8 5.7 3.5 3.5" />
+      </>
+    ),
+    Group: (
+      <>
+        <circle cx="8.5" cy="8" r="3" />
+        <path d="M2.5 20c0-3.4 2.5-5.7 6-5.7s6 2.3 6 5.7" />
+        <path d="M16.2 5.6a3 3 0 0 1 0 5.7M17 14.5c2.7.7 4.2 2.6 4.2 5.5" />
+      </>
+    ),
+    Library: (
+      <>
+        <path d="M3.5 6.5 7.5 5v14l-4 1.5zM10 4h4v16h-4zM16.5 5.5 20.5 4v14l-4 1.5z" />
+        <path d="M4.5 9.2 6.5 8.5M17.5 8 19.5 7.3" />
+      </>
+    ),
+    More: (
+      <>
+        <circle cx="5" cy="12" r="1" />
+        <circle cx="12" cy="12" r="1" />
+        <circle cx="19" cy="12" r="1" />
+      </>
+    ),
+  };
+  return (
+    <svg
+      className="nav-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {paths[name] ?? paths.Book}
+    </svg>
+  );
+}
 function App() {
   const community = useCommunity();
   const groupLabel = community.church?.group_label_plural ?? 'Groups';
+  const churchUrl = community.church?.website_url ?? '#church';
+  const churchSource = community.data.church_sources?.find(
+    (source) => source.churchId === community.church?.id,
+  );
   const [route, setRoute] = useState<Route>(routeFromHash);
   const [menu, setMenu] = useState(false);
   const [mobile, setMobile] = useState(
@@ -166,8 +233,29 @@ function App() {
     },
     validPreferences,
   );
+  const [availableTranslationIds, setAvailableTranslationIds] = useState<
+    string[]
+  >([defaultTranslationId]);
+  useEffect(() => {
+    const controller = new AbortController();
+    void getBibleProviderStatus(controller.signal)
+      .then((status) => {
+        setAvailableTranslationIds([
+          ...new Set(
+            status.available ? status.translations.map((item) => item.id) : [],
+          ),
+        ]);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+  const preferredTranslation = availableTranslationIds.includes(
+    settings.translation,
+  )
+    ? settings.translation
+    : defaultTranslationId;
   const [selectedId, setSelectedId] = useState('');
-  const [passage, setPassage] = useState('Ephesians 1:3â€“14');
+  const [passage, setPassage] = useState('Ephesians 1:3–14');
   const [notice, setNotice] = useState('');
   const [homeQuery, setHomeQuery] = useState('');
   const [studyQuestion, setStudyQuestion] = useState('');
@@ -181,7 +269,7 @@ function App() {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
   useEffect(() => {
-    document.title = `${nav.find((n) => n.id === route)?.label ?? (route === 'onboarding' ? 'Church connection' : 'Discussion Guide')} Â· ScriptureSmart`;
+    document.title = `${nav.find((n) => n.id === route)?.label ?? (route === 'onboarding' ? 'Church connection' : 'Discussion Guide')} · ScriptureSmart`;
   }, [route]);
   function go(next: Route) {
     navigate(next);
@@ -191,7 +279,7 @@ function App() {
     const trimmed = query.trim();
     if (!trimmed) return;
     const referencePattern =
-      /^[1-3]?\s*[A-Za-z]+(?:\s+[A-Za-z]+)*\s+\d+(?::\d+)?(?:\s*[-â€“]\s*\d+(?::\d+)?)?$/;
+      /^[1-3]?\s*[A-Za-z]+(?:\s+[A-Za-z]+)*\s+\d+(?::\d+)?(?:\s*[-–]\s*\d+(?::\d+)?)?$/;
     if (referencePattern.test(trimmed)) {
       setPassage(trimmed);
       setStudyQuestion(`Explain ${trimmed}`);
@@ -280,16 +368,24 @@ function App() {
             onClick={() => openDraft(d)}
           >
             <div className={`document-icon ${d.kind}`}>
-              {d.kind === 'sermon' ? 'â™§' : d.kind === 'study' ? 'â–¤' : 'â˜·'}
+              <NavGlyph
+                name={
+                  d.kind === 'sermon'
+                    ? 'Write'
+                    : d.kind === 'study'
+                      ? 'Book'
+                      : 'Library'
+                }
+              />
             </div>
             <div className="card-kicker">
-              {labels[d.kind]} {d.sample && <span>Â· Sample</span>}
+              {labels[d.kind]} {d.sample && <span>· Sample</span>}
             </div>
             <h3>{d.title}</h3>
             <p>{d.passage || 'Add a passage'}</p>
             <div className="card-footer">
               <span>Draft</span>
-              <span>Continue writing â†—</span>
+              <span>Continue writing ↗</span>
             </div>
           </button>
         ))}
@@ -307,6 +403,11 @@ function App() {
       style={
         {
           '--church-accent': community.church?.accent ?? '#35553d',
+          '--ss-home-image': `url("${import.meta.env.BASE_URL}images/home-study.webp")`,
+          '--ss-study-image': `url("${import.meta.env.BASE_URL}images/study-desk.webp")`,
+          '--ss-explore-image': `url("${import.meta.env.BASE_URL}images/explore-library.webp")`,
+          '--ss-sermon-image': `url("${import.meta.env.BASE_URL}images/sermon-writing.webp")`,
+          '--ss-group-image': `url("${import.meta.env.BASE_URL}images/gospel-community.webp")`,
         } as import('react').CSSProperties
       }
     >
@@ -333,16 +434,25 @@ function App() {
         >
           Close menu <span aria-hidden="true">&times;</span>
         </button>
-        <a className="brand" href="#dashboard">
-          <span className="brand-symbol">â–¥</span>
+        <a className="brand" href="#dashboard" aria-label="ScriptureSmart home">
+          <svg
+            className="brand-symbol"
+            viewBox="0 0 52 46"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M4 8c7.5-1.5 15 .5 22 5.5V41C18.5 36.5 11 34.5 4 36z" />
+            <path d="M48 8c-7.5-1.5-15 .5-22 5.5V41c7.5-4.5 15-6.5 22-5z" />
+            <path d="M26 14v26M8 12v19c5-.3 10 1.2 14 3.3M44 12v19c-5-.3-10 1.2-14 3.3" />
+          </svg>
           <span>
             Scripture<span className="brand-light">Smart</span>
-            <small>YOUR STUDY WORKSPACE</small>
+            <small>DEEPER SCRIPTURE. BRIGHTER LIFE.</small>
           </span>
-        </a>
-        <a className="church-nav-identity" href="#church">
-          <strong>{community.church?.name ?? 'Church workspace'}</strong>
-          <small>{community.church?.city}</small>
         </a>
         <nav aria-label="Main navigation">
           {nav
@@ -352,34 +462,55 @@ function App() {
                 key={n.id}
                 href={`#${n.id}`}
                 aria-current={route === n.id ? 'page' : undefined}
-                className={`${route === n.id ? 'active' : ''} ${i === 8 ? 'nav-divider' : ''}`}
+                className={`${route === n.id ? 'active' : ''} ${i === 5 ? 'nav-divider' : ''}`}
                 onClick={() => setMenu(false)}
               >
-                <span className="nav-icon">{n.icon}</span>
+                <NavGlyph name={n.icon} />
                 {n.id === 'groups' ? groupLabel : n.label}
-                {n.id === 'table' && (
-                  <span className="nav-count">{table.length}</span>
-                )}
               </a>
             ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="local-pill">
-            <span /> Local workspace
-          </div>
-          <p>
-            Your next insight starts
-            <br />
-            with a closer look.
+          <p className="sidebar-verse">
+            “Your word is a lamp to my feet and a light to my path.”
+            <small>PSALM 119:105</small>
           </p>
-          <div className="profile">
-            <span className="avatar">
-              {settings.name.charAt(0).toUpperCase()}
-            </span>
-            <div>
-              {settings.name}
-              <small>Personal account Â· Preview</small>
-            </div>
+          <div className="sidebar-church">
+            <a
+              href={churchUrl}
+              target={churchUrl.startsWith('http') ? '_blank' : undefined}
+              rel={
+                churchUrl.startsWith('http') ? 'noopener noreferrer' : undefined
+              }
+              title={
+                community.church
+                  ? `Visit ${community.church.name} website`
+                  : 'Church website'
+              }
+            >
+              <ChurchImage church={community.church} source={churchSource} />
+              <span>
+                <strong>
+                  {community.church?.name ?? 'Choose your church'}
+                </strong>
+                <small>{community.church?.city ?? 'Church workspace'}</small>
+              </span>
+            </a>
+            <details className="sidebar-utilities">
+              <summary>
+                <NavGlyph name="More" /> Workspace & account
+              </summary>
+              <a href="#table">
+                The Table <span>{table.length}</span>
+              </a>
+              <a href="#church">Church workspace</a>
+              <a href="#connections">Connections</a>
+              <a href="#settings">Settings</a>
+              <a href="#member-login">Member login</a>
+              <span className="local-pill">
+                <i /> Local preview · {settings.name}
+              </span>
+            </details>
           </div>
         </div>
       </aside>
@@ -392,7 +523,7 @@ function App() {
       )}
       <div className="main-shell" inert={mobile && menu}>
         <header className="topbar">
-          <div className="breadcrumb">
+          <div className="topbar-left">
             <button
               ref={menuButtonRef}
               aria-controls="site-navigation"
@@ -401,32 +532,59 @@ function App() {
               aria-expanded={menu}
               onClick={() => setMenu(!menu)}
             >
-              â˜°
+              Menu
             </button>
-            <span>Workspace</span>
-            <span className="slash">/</span>
-            <strong>
-              {nav.find((n) => n.id === route)?.label ??
-                (route === 'onboarding'
-                  ? 'Church connection'
-                  : 'Discussion Guide')}
-            </strong>
+            <span className="mobile-route-name">
+              {nav.find((n) => n.id === route)?.label ?? 'Workspace'}
+            </span>
           </div>
           <div className="topbar-right">
-            <span className="preview-label">LOCAL PREVIEW</span>
-            <button className="search-shortcut" onClick={() => go('library')}>
-              âŒ• <span>Find in library</span>
+            <button
+              className="search-shortcut"
+              onClick={() => go('library')}
+              aria-label="Search your library"
+            >
+              <NavGlyph name="Search" /> <span>Search</span>
             </button>
-            <span className="avatar small">
-              {settings.name.charAt(0).toUpperCase()}
-            </span>
+            <a
+              className="top-church-selector"
+              href={churchUrl}
+              target={churchUrl.startsWith('http') ? '_blank' : undefined}
+              rel={
+                churchUrl.startsWith('http') ? 'noopener noreferrer' : undefined
+              }
+              title={
+                community.church
+                  ? `Visit ${community.church.name} website`
+                  : 'Church workspace'
+              }
+            >
+              <ChurchImage
+                church={community.church}
+                source={churchSource}
+                className="church-avatar"
+              />
+              <span>
+                <strong>{community.church?.name ?? 'Church workspace'}</strong>
+                <small>{community.church?.city ?? ''}</small>
+              </span>
+            </a>
+            <details className="top-utilities">
+              <summary aria-label="Open workspace settings">
+                <span className="account-avatar">
+                  {settings.name.charAt(0).toUpperCase()}
+                </span>
+              </summary>
+              <div>
+                <strong>{settings.name}</strong>
+                <a href="#connections">Connections</a>
+                <a href="#settings">Settings</a>
+                <a href="#member-login">Member login</a>
+              </div>
+            </details>
           </div>
         </header>
         <main id="main-content" tabIndex={-1}>
-          <div className="preview-banner">
-            <span>â—‡</span> Personal study drafts are local. Open your church
-            workspace for group planning; your edits stay in this browser.
-          </div>
           {error && (
             <div role="alert" className="alert">
               {error}
@@ -439,7 +597,7 @@ function App() {
                 aria-label="Dismiss notification"
                 onClick={() => setNotice('')}
               >
-                Ã—
+                ×
               </button>
             </div>
           )}
@@ -460,12 +618,12 @@ function App() {
                   <section className="home-study-hero">
                     <div className="home-hero-copy">
                       <span className="hero-eyebrow">
-                        SCRIPTURESMART STUDY DESK
+                        A SCRIPTURE STUDY WORKSPACE
                       </span>
                       <h1>What are you studying today?</h1>
                       <p>
-                        Ask a Bible question, open a passage, prepare to teach,
-                        or gather your notes for deeper study.
+                        Ask a question. Explore a passage. Prepare a sermon.
+                        Grow together.
                       </p>
                       <form
                         className="home-ask-form"
@@ -483,7 +641,37 @@ function App() {
                           onChange={(event) => setHomeQuery(event.target.value)}
                           placeholder="Ask anything about the Bible..."
                         />
-                        <button className="button primary">Study â†’</button>
+                        <label className="sr-only" htmlFor="home-translation">
+                          Preferred translation
+                        </label>
+                        <select
+                          id="home-translation"
+                          aria-label="Preferred Bible translation"
+                          value={preferredTranslation}
+                          onChange={(event) =>
+                            saveSettings({
+                              ...settings,
+                              translation: event.target.value,
+                            })
+                          }
+                        >
+                          {[
+                            ...new Set([
+                              defaultTranslationId,
+                              ...availableTranslationIds,
+                            ]),
+                          ].map((id) => (
+                            <option key={id} value={id}>
+                              {id}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          className="button primary"
+                          aria-label="Start studying"
+                        >
+                          →
+                        </button>
                       </form>
                       <div
                         className="prompt-pills"
@@ -508,15 +696,6 @@ function App() {
                         ))}
                       </div>
                     </div>
-                    <div className="study-room-art" aria-hidden="true">
-                      <div className="desk-card manuscript-card">
-                        Ephesians 1
-                      </div>
-                      <div className="desk-card notes-card">
-                        Notes + questions
-                      </div>
-                      <div className="lamp-glow" />
-                    </div>
                   </section>
                   <section className="pathway-grid" aria-label="Study pathways">
                     {[
@@ -540,13 +719,17 @@ function App() {
                         'Open groups, shared studies, The Table, meals, kids planning, and logistics.',
                         () => go('groups'),
                       ],
-                    ].map(([title, description, action]) => (
+                    ].map(([title, description, action], index) => (
                       <button
-                        className="pathway-card"
+                        className={`pathway-card pathway-card-${index + 1}`}
                         key={title as string}
                         onClick={action as () => void}
                       >
-                        <span>âœ¦</span>
+                        <span className="pathway-card-icon">
+                          <NavGlyph
+                            name={['Book', 'Write', 'Search', 'Group'][index]}
+                          />
+                        </span>
                         <strong>{title as string}</strong>
                         <small>{description as string}</small>
                       </button>
@@ -560,7 +743,7 @@ function App() {
                           className="text-button"
                           onClick={() => go('library')}
                         >
-                          View library â†’
+                          View library →
                         </button>
                       </div>
                       {draftCards(
@@ -571,17 +754,49 @@ function App() {
                           .slice(0, 3),
                       )}
                     </section>
-                    <section className="panel editorial-panel">
+                    <section className="panel editorial-panel recent-passages-panel">
                       <h2>Recent Passages</h2>
-                      <div className="inline-links">
-                        <button onClick={() => go('study')}>
-                          {passage} â†’
-                        </button>
-                        <button onClick={() => go('research')}>
-                          Saved notes Â· {notes.length} â†’
-                        </button>
-                        <button onClick={() => go('groups')}>
-                          {groupLabel} Â· this week â†’
+                      <div className="recent-passage-list">
+                        {[
+                          ...new Set([
+                            passage,
+                            ...notes
+                              .map((item) => item.passage)
+                              .filter(Boolean),
+                          ]),
+                        ]
+                          .slice(0, 4)
+                          .map((reference) => (
+                            <button
+                              key={reference}
+                              onClick={() => {
+                                setPassage(reference);
+                                go('study');
+                              }}
+                            >
+                              <span className="recent-book-mark">
+                                <NavGlyph name="Book" />
+                              </span>
+                              <span>
+                                <strong>{reference}</strong>
+                                <small>
+                                  {reference === passage
+                                    ? 'Current passage'
+                                    : 'From your saved notes'}
+                                </small>
+                              </span>
+                              <span className="recent-arrow">→</span>
+                            </button>
+                          ))}
+                        <button onClick={() => go('library')}>
+                          <span className="recent-book-mark">
+                            <NavGlyph name="Library" />
+                          </span>
+                          <span>
+                            <strong>Your saved notes</strong>
+                            <small>{notes.length} personal notes</small>
+                          </span>
+                          <span className="recent-arrow">→</span>
                         </button>
                       </div>
                     </section>
@@ -591,7 +806,7 @@ function App() {
                       <span className="eyebrow">
                         EXPLORE SCRIPTURE FROM EVERY ANGLE
                       </span>
-                      <h2>A richer view of Godâ€™s Word</h2>
+                      <h2>A richer view of God’s Word</h2>
                     </div>
                     {[
                       'Commentaries',
@@ -612,16 +827,17 @@ function App() {
                 <PassageWorkspace
                   passage={passage}
                   setPassage={setPassage}
-                  preferred={supportedTranslationId(settings.translation)}
-                  comparisons={supportedComparisonIds(
-                    settings.comparisons,
-                    supportedTranslationId(settings.translation),
+                  preferred={preferredTranslation}
+                  availableTranslationIds={availableTranslationIds}
+                  comparisons={settings.comparisons.filter((id) =>
+                    availableTranslationIds.includes(id),
                   )}
                   notes={notes}
                   saveNotes={saveNotes}
                   send={sendToTable}
                   connect={() => go('connections')}
                   initialQuestion={studyQuestion}
+                  fumsUserId={community.userId}
                 />
               )}
               {(['sermons', 'bible-studies', 'guide'] as Route[]).includes(
@@ -669,6 +885,7 @@ function App() {
                 <Settings
                   settings={settings}
                   save={saveSettings}
+                  availableTranslationIds={availableTranslationIds}
                   backup={{
                     version: 1,
                     drafts,
@@ -682,7 +899,7 @@ function App() {
             </>
           )}
           <footer>
-            <span className="footer-brand">â–¥ ScriptureSmart</span>
+            <span className="footer-brand">SS ScriptureSmart</span>
             <span>Rooted in Scripture. Thoughtful by design.</span>
             <span>Foundation preview</span>
           </footer>

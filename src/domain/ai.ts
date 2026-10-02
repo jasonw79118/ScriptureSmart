@@ -66,6 +66,59 @@ export interface AIRequest {
   context?: AIContext;
   options?: { temperature?: number; maxTokens?: number };
 }
+export interface BibleResearchResult {
+  reference: string;
+  testament: 'old' | 'new';
+  selectedTranslation?: {
+    id: string;
+    name: string;
+    text: string;
+    attribution: string;
+    sourceUrl: string;
+    fumsToken?: string;
+    rights: TranslationRights;
+  };
+  comparisonTranslations: {
+    id: string;
+    name: string;
+    text: string;
+    attribution: string;
+    sourceUrl: string;
+    fumsToken?: string;
+    rights: TranslationRights;
+  }[];
+  openTranslation: { id: string; verses: { verse: number; text: string }[] };
+  crossReferences: { reference: string; score?: number }[];
+  originalLanguage: {
+    language: 'Hebrew' | 'Greek';
+    words: {
+      verse: number;
+      text?: string;
+      strongs?: string[];
+      lemma?: string;
+      morph?: string;
+      srcloc?: string;
+      occurrences?: number;
+    }[];
+  };
+  commentaries: {
+    id: string;
+    name: string;
+    text: string;
+    website?: string;
+    licenseUrl?: string;
+  }[];
+  entities: { type: 'people' | 'places' | 'events'; name: string }[];
+  unavailable: string[];
+  source: 'Free Use Bible API';
+}
+export interface TranslationRights {
+  displayAllowed: boolean;
+  aiContextAllowed: boolean;
+  cachingAllowed: boolean;
+  localStorageAllowed: boolean;
+  commercialUseAllowed: boolean;
+}
 export interface SourceCitation {
   sourceId: string;
   kind: SourceKind;
@@ -82,10 +135,13 @@ export interface AIResponse {
   sections?: Record<GuideSection, string>;
   citations?: SourceCitation[];
   warnings?: string[];
+  bibleResearch?: BibleResearchResult;
 }
 export const aiErrors = {
   'scripture-unavailable':
     'The Bible text could not be retrieved. Please retry or choose fewer passages. No source-based answer was generated.',
+  'translation-unavailable':
+    'This API.Bible translation is not available right now. Check Bible connections and ask your site administrator to verify the backend setup and edition license.',
   'auth-unavailable':
     'ScriptureSmart AI could not verify your current account session. The account service may be unavailable; please retry. This does not necessarily mean you are signed out.',
   'setup-required':
@@ -120,6 +176,18 @@ export class AIError extends Error {
 }
 export const isRecord = (v: unknown): v is Record<string, unknown> =>
   !!v && typeof v === 'object' && !Array.isArray(v);
+function validTranslationRights(value: unknown): value is TranslationRights {
+  return (
+    isRecord(value) &&
+    [
+      'displayAllowed',
+      'aiContextAllowed',
+      'cachingAllowed',
+      'localStorageAllowed',
+      'commercialUseAllowed',
+    ].every((key) => typeof value[key] === 'boolean')
+  );
+}
 export function validGuide(
   value: unknown,
 ): value is Record<GuideSection, string> {
@@ -152,7 +220,41 @@ export function parseAIResponse(
     (taskType === 'discussion-guide' && !validGuide(value.sections)) ||
     (value.warnings !== undefined &&
       (!Array.isArray(value.warnings) ||
-        value.warnings.some((w) => typeof w !== 'string')))
+        value.warnings.some((w) => typeof w !== 'string'))) ||
+    (value.bibleResearch !== undefined &&
+      (!isRecord(value.bibleResearch) ||
+        typeof value.bibleResearch.reference !== 'string' ||
+        !['old', 'new'].includes(String(value.bibleResearch.testament)) ||
+        (value.bibleResearch.selectedTranslation !== undefined &&
+          (!isRecord(value.bibleResearch.selectedTranslation) ||
+            !['CSB', 'NLT', 'NKJV', 'KJV'].includes(
+              String(value.bibleResearch.selectedTranslation.id),
+            ) ||
+            typeof value.bibleResearch.selectedTranslation.text !== 'string' ||
+            !validTranslationRights(
+              value.bibleResearch.selectedTranslation.rights,
+            ))) ||
+        !isRecord(value.bibleResearch.openTranslation) ||
+        typeof value.bibleResearch.openTranslation.id !== 'string' ||
+        !Array.isArray(value.bibleResearch.openTranslation.verses) ||
+        !Array.isArray(value.bibleResearch.comparisonTranslations) ||
+        value.bibleResearch.comparisonTranslations.some(
+          (item) =>
+            !isRecord(item) ||
+            !['CSB', 'NLT', 'NKJV', 'KJV'].includes(String(item.id)) ||
+            typeof item.text !== 'string' ||
+            !validTranslationRights(item.rights),
+        ) ||
+        !Array.isArray(value.bibleResearch.crossReferences) ||
+        !Array.isArray(value.bibleResearch.commentaries) ||
+        !Array.isArray(value.bibleResearch.entities) ||
+        !Array.isArray(value.bibleResearch.unavailable) ||
+        !isRecord(value.bibleResearch.originalLanguage) ||
+        !['Hebrew', 'Greek'].includes(
+          String(value.bibleResearch.originalLanguage.language),
+        ) ||
+        !Array.isArray(value.bibleResearch.originalLanguage.words) ||
+        value.bibleResearch.source !== 'Free Use Bible API'))
   )
     throw new AIError('malformed');
   if (
@@ -182,5 +284,6 @@ export function parseAIResponse(
     kind: 'AI SYNTHESIS',
     sections: value.sections as AIResponse['sections'],
     warnings: value.warnings as string[] | undefined,
+    bibleResearch: value.bibleResearch as BibleResearchResult | undefined,
   };
 }

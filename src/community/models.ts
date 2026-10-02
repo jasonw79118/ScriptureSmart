@@ -1,7 +1,24 @@
+export interface ChurchSourceItem {
+  sourceUrl: string;
+  sourceType: 'website' | 'favicon' | 'open-graph' | 'feed' | 'manual';
+  title: string;
+  imageUrl?: string;
+  lastCheckedAt?: string;
+}
+export interface ChurchSource {
+  churchId: string;
+  websiteUrl: string;
+  logoUrl?: string;
+  imageUrl?: string;
+  lastSyncedAt?: string;
+  items?: ChurchSourceItem[];
+}
 export interface ChurchIdentity {
   id: string;
   name: string;
   city: string;
+  website_url?: string;
+  image_url?: string;
   group_label: string;
   group_label_plural: string;
   accent: string;
@@ -74,12 +91,13 @@ export interface Contribution {
   id: string;
   group_id: string;
   author_id: string;
-  kind: 'question' | 'idea' | 'discussion' | 'kids';
+  kind: 'question' | 'idea' | 'discussion' | 'prayer' | 'kids';
   text: string;
   parent_id: string | null;
   created_at: string;
 }
 export interface CommunityData {
+  church_sources?: ChurchSource[];
   church_members: ChurchMember[];
   directory: GroupListing[];
   churches: ChurchIdentity[];
@@ -91,9 +109,10 @@ export interface CommunityData {
   contributions: Contribution[];
   dietary: DietaryNeed[];
 }
-export type Collection = keyof CommunityData;
+export type Collection = Exclude<keyof CommunityData, 'church_sources'>;
 export type Row = CommunityData[Collection][number];
 export const emptyCommunity: CommunityData = {
+  church_sources: [],
   church_members: [],
   directory: [],
   churches: [],
@@ -112,12 +131,21 @@ export const redeemer = {
   group_label_plural: 'Gospel Community Groups',
   accent: '#363636',
   welcome: 'Life together, rooted in the gospel.',
+  website_url: 'https://www.redeemerchristianchurch.com/',
   leaders: '',
 };
 export const previewCommunity: CommunityData = {
   ...emptyCommunity,
   churches: [
     { ...redeemer, id: 'redeemer-preview', owner_id: 'local-preview' },
+  ],
+  church_sources: [
+    {
+      churchId: 'redeemer-preview',
+      websiteUrl: 'https://www.redeemerchristianchurch.com/',
+      lastSyncedAt: '',
+      items: [],
+    },
   ],
   groups: [
     {

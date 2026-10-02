@@ -8,7 +8,7 @@ The AI Worker is deployed at https://scripturesmart-ai.jasonw79118.workers.dev. 
 
 **Study deeply. Teach faithfully. Grow together.**
 
-A calm Bible research and collaboration workspace for individuals, pastors, study leaders, and churches. This initial foundation is a working, responsive local prototype. Appwrite authentication is configured; shared community data requires deployment of the supplied function. ScriptureSmart AI is implemented with a Cloudflare Worker; live use requires operator setup and deployment. Bible text providers remain unconnected.
+A responsive Bible research and collaboration workspace for individuals, pastors, study leaders, and churches. Appwrite authentication is configured; shared community data requires deployment of the supplied function. ScriptureSmart AI and Bible text retrieval use the existing Cloudflare Worker. Confirm the provider secrets and authorized API.Bible editions in Cloudflare before using licensed translations.
 
 ## Run locally
 
@@ -36,16 +36,26 @@ Browser tests use installed Microsoft Edge for desktop and mobile viewport proje
 
 - Responsive sidebar, mobile navigation, and shareable hash routes for all main areas.
 - Dashboard with recent drafts, passage entry point, sample group study, local Table activity, and provider status.
-- Passage workspace with selectable/comparison translations, source-specific research panels, interpretive approaches, and persistent personal notes.
+- Passage workspace with CSB, NLT, NKJV, and public-domain KJV, translation comparison, source-specific research panels, interpretive approaches, and persistent personal notes.
 - Structured sermon and Bible-study editors with editable sections, local autosave, and plain-text export.
 - Discussion-guide editor with sermon text input and Opening, Read, Observe, Interpret, Discuss, Apply, and Pray sections. Optional built-in AI generates an editable draft for explicit review and insertion.
 - Sample group and local Table: add questions, passages, resources, notes, and sermon excerpts; reply; mark and filter items for group night.
 - Library and research search across local drafts and notes, including content-type filters.
 - Built-in ScriptureSmart AI for passage study, sermons, Bible studies, and discussion guides; explicit context selection, cancellation, and draft review.
-- Optional links to external AI websites and planned Bible-provider integrations.
+- Optional links to external AI websites and a rights-aware Bible research pipeline.
 - Translation preferences, optional theology profile, and JSON workspace export.
 
-Sample drafts and group content are labeled. No Bible text, original-language data, historical quotations, or provider responses are fabricated. Source collections list potential authors without implying access to their works.
+Sample drafts and group content are labeled. Retrieved Bible text, word annotations, cross references, commentary, and AI synthesis carry separate source labels. Missing lexical or commentary data is reported instead of invented.
+
+## Bible Research Pipeline
+
+API.Bible discovers the editions authorized for the Cloudflare key through `/v1/bibles`; ScriptureSmart uses it for CSB, NLT, and NKJV. If an edition is not authorized, it is omitted from the available list and its passage request gives a safe access message. Public-domain KJV text comes from bible-api.com and does not use API.Bible. Licensed passage text is retrieved server-side for display and is not sent to Workers AI; public-domain KJV text may be included in study context.
+
+The Free Use Bible API supplies a public-domain BSB comparison passage, OpenBible.info cross references, available commentary chapters, Theographic people/place/event data, and BSB word annotations where a chapter has them. Strong's IDs, lemma, morphology, and word anchors appear only when the endpoint supplies them. The current source does not provide a guaranteed original-script form, transliteration, or English gloss for every annotated word, so ScriptureSmart leaves those fields unavailable. Each provider can fail independently while other returned research remains available.
+
+Bible research is gathered server-side and attached to passage-study answers. Retrieved resources remain separate from ScriptureSmart AI synthesis. Users can compare the selected edition with open BSB wording in the response. Commentary, reference lists, word annotations, and selected translation text are shown as retrieved source material, not AI-authored claims.
+
+API.Bible display requests include its required FUMS v3 token. ScriptureSmart reports the token only after showing that passage. The API.Bible key must be stored as the Cloudflare Worker runtime secret `API_BIBLE_KEY`. A GitHub repository secret is available only to workflows that explicitly map it; the current GitHub Pages workflow does not deploy the Worker and does not forward secrets. See [Worker setup](server/ai/README.md#operator-setup).
 
 ## Architecture
 
@@ -88,14 +98,14 @@ The model distinguishes Scripture, original-language data, primary historical so
 
 ## Environment and integrations
 
-`.env.example` contains blank placeholders for OpenAI, Anthropic, xAI, YouVersion, Bible Brain, and ESV. Copy it only when implementing a trusted backend. The current prototype does not use these variables. Never prefix credentials with `VITE_`: those values are embedded in browser bundles. `.env` and `.env.*` are ignored, with `.env.example` explicitly allowed.
+`.env.example` contains backend-only placeholders for existing provider integrations. Never prefix credentials with `VITE_`: those values are embedded in browser bundles. `.env` and `.env.*` are ignored, with `.env.example` explicitly allowed.
 
 Credentials must be accepted only by an authenticated server over TLS, encrypted using a managed key/vault, scoped to the owner, redacted from logs, and never returned to the browser. Stored connection metadata should contain only a vault reference. Do not ask for normal AI or Bible account passwords. Consumer subscriptions do not establish API access.
 
 Planned integrations (availability and licensing must be verified before implementation):
 
 - AI: OpenAI, Anthropic Claude, xAI Grok; later Gemini, Azure OpenAI, Bedrock, Ollama/local models.
-- Scripture: approved YouVersion developer access; Bible Brain text/audio/video/languages; ESV; vetted public-domain sources. Translation availability is not assumed.
+- Scripture: API.Bible for CSB, NLT, and NKJV; public-domain KJV source; approved YouVersion developer access; Bible Brain research sources. Translation availability is not assumed.
 - Official OAuth/OpenID only where supported; YouVersion highlights only if explicitly supported and user-authorized.
 - Church content: YouTube, Google Drive, Dropbox, Planning Center, Church Center, podcast RSS.
 - Document/media parsing: DOCX, PDF, audio, video, and YouTube imports.

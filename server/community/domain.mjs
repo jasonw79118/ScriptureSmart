@@ -518,11 +518,13 @@ export function applyCommand(original, user, command, now = Date.now()) {
           fail('Discussion contributions cannot be overwritten.');
         access(r.group_id);
         if (!membership(r.group_id)) fail('Join this group before posting.');
-        const kind = choice(r.kind, ['question', 'idea', 'discussion', 'kids']);
+        const kind = choice(r.kind, ['question', 'idea', 'discussion', 'prayer', 'kids']);
         capability(r.group_id, kind === 'kids' ? 'kids' : 'discussion');
         const parent = d.contributions.find((p) => p.id === r.parent_id);
         if (parent && (parent.kind === 'kids') !== (kind === 'kids'))
           fail('Replies must stay within their original group section.');
+        if (parent && (parent.kind === 'prayer') !== (kind === 'prayer'))
+          fail('Prayer replies must stay within their original request.');
         if (parent)
           capability(
             r.group_id,

@@ -1,4 +1,4 @@
-import { AIError, isRecord } from '../domain/ai';
+import { AIError, aiErrors, isRecord, type AIErrorCode } from '../domain/ai';
 import { getAIUserToken } from './auth';
 import { account } from '../community/client';
 
@@ -6,6 +6,7 @@ export interface BibleProviderStatus {
   available: boolean;
   provider: string;
   translations: { id: string; name: string }[];
+  unavailableTranslationIds?: string[];
 }
 
 export interface BiblePassageResult {
@@ -14,6 +15,14 @@ export interface BiblePassageResult {
   text: string;
   attribution: string;
   sourceUrl: string;
+  fumsToken?: string;
+  rights?: {
+    displayAllowed: boolean;
+    aiContextAllowed: boolean;
+    cachingAllowed: boolean;
+    localStorageAllowed: boolean;
+    commercialUseAllowed: boolean;
+  };
 }
 
 const root =
@@ -46,18 +55,16 @@ export async function getBiblePassage(
     } catch {
       serverCode = '';
     }
-    const error = new AIError(
+    let code: AIErrorCode =
       response.status === 401
         ? 'sign-in'
         : response.status === 403
           ? 'forbidden'
           : response.status === 429
             ? 'rate-limit'
-            : 'scripture-unavailable',
-    );
-    if (serverCode)
-      error.message = `${error.message} (Server code: ${serverCode})`;
-    throw error;
+            : 'scripture-unavailable';
+    if (Object.hasOwn(aiErrors, serverCode)) code = serverCode as AIErrorCode;
+    throw new AIError(code);
   }
   const body: unknown = await response.json();
   if (
@@ -75,6 +82,20 @@ export async function getBiblePassage(
     text: body.text,
     attribution: body.attribution,
     sourceUrl: body.sourceUrl,
+    ...(typeof body.fumsToken === 'string'
+      ? { fumsToken: body.fumsToken }
+      : {}),
+    ...(isRecord(body.rights)
+      ? {
+          rights: {
+            displayAllowed: body.rights.displayAllowed === true,
+            aiContextAllowed: body.rights.aiContextAllowed === true,
+            cachingAllowed: body.rights.cachingAllowed === true,
+            localStorageAllowed: body.rights.localStorageAllowed === true,
+            commercialUseAllowed: body.rights.commercialUseAllowed === true,
+          },
+        }
+      : {}),
   };
 }
 
@@ -108,5 +129,10 @@ export async function getBibleProviderStatus(
     available: body.available,
     provider: body.provider,
     translations,
+    unavailableTranslationIds: Array.isArray(body.unavailableTranslationIds)
+      ? body.unavailableTranslationIds.filter(
+          (id): id is string => typeof id === 'string',
+        )
+      : [],
   };
 }

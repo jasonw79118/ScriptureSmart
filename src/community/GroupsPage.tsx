@@ -1,4 +1,4 @@
-import { AccessControls } from './AccessControls';
+﻿import { AccessControls } from './AccessControls';
 import { DirectoryEditor } from './DirectoryEditor';
 import { formValues } from './forms';
 import {
@@ -8,12 +8,13 @@ import {
 } from './MealPlanning';
 import { useState } from 'react';
 import { useCommunity } from './CommunityContext';
-import { Badge, Heading } from '../components';
+import { Badge } from '../components';
 import { ChurchSwitcher, CommunityStatus, Field, Panel } from './ChurchPage';
 import type { Gathering, Contribution } from './models';
+import { ChurchImage } from './ChurchBrand';
 export function GroupsPage() {
   const c = useCommunity();
-  const [tab, setTab] = useState('Gatherings');
+  const [tab, setTab] = useState('Overview');
   const [selectedMeeting, setSelectedMeeting] = useState('');
   const [newMeeting, setNewMeeting] = useState(false);
   const g = c.group;
@@ -23,164 +24,228 @@ export function GroupsPage() {
       (a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time),
     );
   const meeting = meetings.find((m) => m.id === selectedMeeting) ?? meetings[0];
+  const roster = c.data.members.filter((m) => m.group_id === g?.id);
+  const leaders = roster.filter((m) => m.role === 'leader');
+  const posts = c.data.contributions.filter((p) => p.group_id === g?.id);
+  const mealSlots = meeting
+    ? c.data.dishes.filter((d) => d.meeting_id === meeting.id)
+    : [];
+  const churchSource = c.data.church_sources?.find(
+    (source) => source.churchId === c.church?.id,
+  );
+  const churchUrl =
+    c.church?.website_url ?? churchSource?.websiteUrl ?? '#church';
+
   return (
     <>
-      <Heading
-        title={c.church?.group_label_plural ?? 'Your church community'}
-        subtitle={
-          c.church
-            ? `${c.church.name} · ${c.church.city}`
-            : 'Sign in to see the groups you belong to.'
-        }
-      />
       <CommunityStatus />
-      <ChurchSwitcher />
-      <p>
-        <a href="#find-group">Find a group that fits your household ?</a>
-      </p>
       {!g ? (
-        <div className="panel">
-          <h2>
+        <section className="group-landing-empty image-hero group-image">
+          <span className="eyebrow">GROUPS</span>
+          <h1>
             {c.configured && !c.session
               ? 'Your group is waiting.'
-              : 'No groups yet.'}
-          </h2>
+              : 'Find a place to study together.'}
+          </h1>
           <p>
-            Join with an invitation from your leader, or create a group from
-            your church workspace.
+            Join with an invitation from your leader, find a Gospel Community,
+            or create a group from your church workspace.
           </p>
-          <a className="button primary" href="#member-login">
-            Member login / join group
-          </a>{' '}
-          <a className="button secondary" href="#church">
-            Church workspace
-          </a>
-        </div>
+          <div className="editor-toolbar">
+            <a className="button primary" href="#member-login">
+              Member login / join group
+            </a>
+            <a className="button secondary" href="#find-group">
+              Find a group
+            </a>
+          </div>
+        </section>
       ) : (
-        <>
-          <div
-            className="community-hero"
-            style={{ borderTopColor: c.church?.accent }}
-          >
+        <div className="group-experience">
+          <section className="group-hero image-hero group-image">
             <div>
-              <Badge>{c.church?.group_label}</Badge>
-              <h2>{g.name}</h2>
-              <p>{g.description || c.church?.welcome}</p>
-              <div className="group-facts">
-                <span>◷ {g.rhythm || 'Meeting time to be added'}</span>
-                <span>⌖ {g.location || 'Location to be added'}</span>
+              <a className="text-button group-back-link" href="#groups">
+                ← All Groups
+              </a>
+              <Badge>{c.church?.group_label ?? 'Gospel Community'}</Badge>
+              <h1>{g.name}</h1>
+              <p>
+                {g.description ||
+                  c.church?.welcome ||
+                  'A community for Scripture, prayer, meals, kids, and shared life.'}
+              </p>
+              <div className="group-hero-facts">
+                <span>{roster.length} members</span>
+                <span>
+                  Leaders:{' '}
+                  {leaders.map((m) => m.display_name).join(', ') ||
+                    'To be added'}
+                </span>
+                <span>{g.rhythm || 'Meeting time to be added'}</span>
+                <span>{g.location || 'Location to be added'}</span>
               </div>
             </div>
-            <label>
-              My groups
-              <select
-                aria-label="My groups"
-                value={g.id}
-                onChange={(e) => {
-                  c.setSelectedGroup(e.target.value);
-                  setSelectedMeeting('');
-                }}
+            <aside className="church-identity-card">
+              <a
+                className="church-avatar-link"
+                href={churchUrl}
+                target="_blank"
+                rel="noreferrer"
+                title={
+                  c.church ? `Visit ${c.church.name} website` : 'Church website'
+                }
               >
-                {c.groups.map((group) => (
-                  <option key={group.id} value={group.id}>
-                    {group.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div className="tabs" aria-label="Group sections">
+                <ChurchImage church={c.church} source={churchSource} />
+                <strong>{c.church?.name ?? 'Church website'}</strong>
+              </a>
+                <small>{c.church?.city ?? ''}</small>
+              <ChurchSwitcher />
+            </aside>
+          </section>
+          <nav className="group-section-tabs" aria-label="Group sections">
             {[
-              'Gatherings',
+              'Overview',
               ...(c.canGroup('discussion') ? ['Discussion'] : []),
-              ...(c.canGroup('kids') ? ['Kids’ time'] : []),
-              ...(c.canGroup('meals') ? ['Food needs'] : []),
+              ...(c.canGroup('discussion') ? ['Prayer Requests'] : []),
+              ...(c.canGroup('meals') ? ['Meals'] : []),
+              ...(c.canGroup('kids') ? ['Kids'] : []),
+              'Resources',
               'Members',
-              'Group details',
-            ].map((t) => (
+              'Settings',
+            ].map((name) => (
               <button
-                key={t}
-                aria-pressed={tab === t}
-                onClick={() => setTab(t)}
+                key={name}
+                aria-pressed={tab === name}
+                onClick={() => setTab(name)}
               >
-                {t}
+                {name}
               </button>
             ))}
-          </div>
-          {tab === 'Gatherings' && (
-            <>
-              <div className="editor-toolbar">
-                {meetings.length > 0 && (
-                  <label className="meeting-select">
-                    Gathering
-                    <select
-                      aria-label="Gathering"
-                      value={meeting?.id ?? ''}
-                      onChange={(e) => {
-                        setSelectedMeeting(e.target.value);
-                        setNewMeeting(false);
-                      }}
-                    >
-                      {meetings.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.date} · {m.title}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-                {c.isLeader && (
-                  <button
-                    className="button primary"
-                    onClick={() => setNewMeeting(!newMeeting)}
-                  >
-                    {newMeeting ? 'Cancel new gathering' : 'Plan a gathering'}
-                  </button>
-                )}
-              </div>
-              {newMeeting && (
-                <MeetingEditor
-                  onSaved={(id) => {
-                    setNewMeeting(false);
-                    setSelectedMeeting(id);
-                  }}
-                />
-              )}
-              {!meeting && !newMeeting && (
-                <div className="empty">
-                  <h2>Make room for your next gathering.</h2>
+          </nav>
+
+          {tab === 'Overview' && (
+            <div className="group-overview-layout">
+              <main>
+                <section className="overview-card next-meeting-card">
+                  <div className="overview-card-title"><span className="round-icon">▣</span><span><span className="eyebrow">NEXT MEETING</span><h2>{meeting?.title ?? 'Plan your next gathering'}</h2></span></div>
                   <p>
-                    A leader can add a date and time, meal plan, and kids’
-                    activities. Each gathering gets its own attendance and dish
-                    sign-ups.
+                    {meeting
+                      ? `${meeting.date} · ${meeting.time.slice(0, 5)} · ${g.timezone}`
+                      : 'A leader can add a date, meal plan, kids plan, and attendance sign-up.'}
                   </p>
-                </div>
-              )}
-              {meeting && !newMeeting && (
-                <GatheringView key={meeting.id} meeting={meeting} />
-              )}
-            </>
+                  <div className="editor-toolbar">
+                    {meeting && (
+                      <button className="button primary" onClick={() => document.getElementById('meeting-details')?.setAttribute('open', '')}>Respond to meeting</button>
+                    )}
+                    {c.isLeader && (
+                      <button
+                        className="button secondary"
+                        onClick={() => setNewMeeting(!newMeeting)}
+                      >
+                        {newMeeting
+                          ? 'Cancel new gathering'
+                          : 'Plan a gathering'}
+                      </button>
+                    )}
+                  </div>
+                </section>
+                {newMeeting && (
+                  <MeetingEditor
+                    onSaved={(id) => {
+                      setNewMeeting(false);
+                      setSelectedMeeting(id);
+                    }}
+                  />
+                )}
+                {meeting && !newMeeting && (
+                  <details id="meeting-details" className="group-meeting-details">
+                    <summary><span><strong>Attendance, meals & kids’ time</strong><small>RSVP or mark that you cannot attend. Review the meal and childcare plan.</small></span><b>Open meeting details</b></summary>
+                    <GatheringView key={meeting.id} meeting={meeting} />
+                  </details>
+                )}
+                <section className="overview-card current-study-card">
+                  <div className="overview-card-title"><span className="round-icon">▤</span><span><span className="eyebrow">CURRENT STUDY FOCUS</span><h2>Keep Scripture at the center</h2></span></div>
+                  <p>A passage has not been added to this group’s meeting details yet. Open the Study Desk to read or prepare a passage for your group.</p>
+                  <a className="text-button" href="#study">Open Study Desk →</a>
+                </section>
+                <section className="overview-card group-discussion-card">
+                  <div className="overview-card-title"><span className="round-icon">◌</span><span><span className="eyebrow">THIS WEEK’S DISCUSSION</span><h2>{posts.some((p) => !p.parent_id && (p.kind === 'discussion' || p.kind === 'question')) ? 'Questions from the group' : 'Start the conversation'}</h2></span></div>
+                  {posts.filter((p) => !p.parent_id && (p.kind === 'discussion' || p.kind === 'question')).slice(0, 3).map((post, index) => <p className="group-question-preview" key={post.id}><span>{index + 1}</span>{post.text}</p>)}
+                  {!posts.some((p) => !p.parent_id && (p.kind === 'discussion' || p.kind === 'question')) && <p>Shared questions and ideas will appear here when members post in the Discussion tab.</p>}
+                  <button className="button secondary" onClick={() => setTab('Discussion')}>Open discussion →</button>
+                </section>
+              </main>
+              <aside className="group-side-panel">
+                <section className="overview-card">
+                  <span className="eyebrow">MEAL PLAN</span>
+                  <h2>{meeting?.meal_theme || 'Meal not set'}</h2>
+                  <p>
+                    {mealSlots.length} signup slots ·{' '}
+                    {mealSlots.filter((d) => d.assignee_id).length} assigned
+                  </p>
+                </section>
+                <section className="overview-card">
+                  <span className="eyebrow">KIDS / CHILDCARE</span>
+                  <h2>{g.age_range || 'Ages 0-14'}</h2>
+                  <p>
+                    {meeting?.kids_plan || 'Kids plan has not been added yet.'}
+                  </p>
+                </section>
+                <section className="overview-card prayer-summary">
+                  <span className="eyebrow">PRAYER REQUESTS</span>
+                  <h2>Pray for one another</h2>
+                  <p>{posts.filter((post) => post.kind === 'prayer' && !post.parent_id).length} shared prayer requests</p>
+                  <button className="text-button" onClick={() => setTab('Prayer Requests')}>Open prayer requests →</button>
+                </section>
+                <section className="overview-card church-source-card">
+                  <span className="eyebrow">
+                    FROM {c.church?.name ?? 'REDEEMER CHRISTIAN CHURCH'}
+                  </span>
+                  {churchSource?.items?.length ? <div className="sourced-church-items">{churchSource.items.slice(0, 3).map((item) => <a key={`${item.sourceUrl}-${item.title}`} href={item.sourceUrl} target="_blank" rel="noopener noreferrer">{item.imageUrl && <img src={item.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />}<span><small>{item.sourceType.replace('-', ' ')}</small><strong>{item.title}</strong></span><b>↗</b></a>)}</div> : <p>No verified church updates have been synced yet.</p>}
+                  <a className="text-button" href={churchUrl} target="_blank" rel="noopener noreferrer">Visit church website →</a>
+                </section>
+              </aside>
+            </div>
           )}
+
           {tab === 'Discussion' && c.canGroup('discussion') && (
             <Conversation kind="discussion" />
           )}
-          {tab === 'Kids’ time' && g.kids_enabled && (
+          {tab === 'Prayer Requests' && c.canGroup('discussion') && <Conversation kind="prayer" />}
+          {tab === 'Meals' && c.canGroup('meals') && (
             <>
-              <div className="subtle-box">
-                <strong>Ideas for time with kids</strong>
+              {meeting ? (
+                <MealPlan
+                  meeting={meeting}
+                  names={(id) =>
+                    roster.find((m) => m.user_id === id)?.display_name ??
+                    'Group member'
+                  }
+                />
+              ) : (
+                <p>No meeting selected.</p>
+              )}
+              <DietaryPreferences />
+            </>
+          )}
+          {tab === 'Kids' && g.kids_enabled && (
+            <>
+              <section className="overview-card">
+                <span className="eyebrow">KIDS PLANNING</span>
+                <h2>Activities, supplies, supervision</h2>
                 <p>
-                  For ages 0–3, offer supervised play and a short song. Ages 4–7
-                  can retell a story or draw a scene. Ages 8–14 can discuss a
-                  question or plan a small service activity. These are suggested
-                  activities; leaders should choose age-appropriate plans and
-                  supervision.
+                  Expected children, activities, and important notes remain
+                  visible only within existing group permissions.
                 </p>
-              </div>
+              </section>
               <Conversation kind="kids" />
             </>
           )}
-          {tab === 'Food needs' && c.canGroup('meals') && (
-            <DietaryPreferences />
+          {tab === 'Resources' && (
+            <section className="group-resources-page">
+              <div className="page-heading"><div><span className="eyebrow">SHARED LIBRARY</span><h1>Group resources</h1><p>Study material and trusted church links for your group.</p></div></div>
+              {churchSource?.items?.length ? <div className="church-resource-grid">{churchSource.items.map((item) => <a className="church-resource-card" key={`${item.sourceUrl}-${item.title}`} href={item.sourceUrl} target="_blank" rel="noopener noreferrer">{item.imageUrl && <img src={item.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />}<small>{item.sourceType.replace('-', ' ')}</small><strong>{item.title}</strong><span>Open source ↗</span></a>)}</div> : <section className="shared-resources-empty"><span className="resource-emblem">▤</span><div><h2>No shared resources yet</h2><p>When your group shares study guides or documents, they will appear here. No example files are being shown as if they were real group resources.</p></div></section>}
+            </section>
           )}
           {tab === 'Members' && (
             <>
@@ -188,13 +253,13 @@ export function GroupsPage() {
               {c.isLeader && <AccessControls scope="group" />}
             </>
           )}
-          {tab === 'Group details' && (
+          {tab === 'Settings' && (
             <>
               <GroupDetails />
               {c.isLeader && <DirectoryEditor key={g.id} />}
             </>
           )}
-        </>
+        </div>
       )}
     </>
   );
@@ -754,10 +819,10 @@ function MealPlan({
     </section>
   );
 }
-function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
+function Conversation({ kind }: { kind: 'discussion' | 'prayer' | 'kids' }) {
   const c = useCommunity();
   const [type, setType] = useState<Contribution['kind']>(
-    kind === 'kids' ? 'kids' : 'question',
+    kind === 'kids' ? 'kids' : kind === 'prayer' ? 'prayer' : 'question',
   );
   const [text, setText] = useState('');
   const [replies, setReplies] = useState<Record<string, string>>({});
@@ -772,7 +837,7 @@ function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
         id: crypto.randomUUID(),
         group_id: c.group!.id,
         author_id: c.userId,
-        kind: kind === 'kids' ? 'kids' : type,
+        kind: kind === 'kids' ? 'kids' : kind === 'prayer' ? 'prayer' : type,
         text: body.trim(),
         parent_id: parent,
         created_at: new Date().toISOString(),
@@ -786,7 +851,9 @@ function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
         title={
           kind === 'kids'
             ? 'Share a kids’ time idea'
-            : 'Bring your voice to the discussion'
+            : kind === 'prayer'
+              ? 'Share a prayer request'
+              : 'Bring your voice to the discussion'
         }
       >
         <form
@@ -796,7 +863,7 @@ function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
             if (await post(text)) setText('');
           }}
         >
-          {kind !== 'kids' && (
+          {kind === 'discussion' && (
             <label>
               Contribution type
               <select
@@ -812,7 +879,7 @@ function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
             </label>
           )}
           <label>
-            {kind === 'kids' ? 'Activity idea' : 'Your contribution'}
+            {kind === 'kids' ? 'Activity idea' : kind === 'prayer' ? 'Prayer request' : 'Your contribution'}
             <textarea
               required
               maxLength={10000}
@@ -821,7 +888,7 @@ function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
             />
           </label>
           <button className="button primary" disabled={c.busy || !text.trim()}>
-            Share with group
+            {kind === 'prayer' ? 'Share prayer request' : 'Share with group'}
           </button>
           <small>
             {c.configured
@@ -834,7 +901,7 @@ function Conversation({ kind }: { kind: 'discussion' | 'kids' }) {
         .filter(
           (p) =>
             !p.parent_id &&
-            (kind === 'kids' ? p.kind === 'kids' : p.kind !== 'kids'),
+            (kind === 'kids' ? p.kind === 'kids' : kind === 'prayer' ? p.kind === 'prayer' : p.kind !== 'kids' && p.kind !== 'prayer'),
         )
         .sort((a, b) => b.created_at.localeCompare(a.created_at))
         .map((p) => (

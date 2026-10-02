@@ -1,21 +1,36 @@
-import type { BibleProvider, Translation, Source, User } from './models';
+import type { BibleProvider, Translation, Source, User } from './models.ts';
+
+export const activeTranslationIds = ['CSB', 'NLT', 'NKJV', 'KJV'] as const;
+export const apiBibleTranslationIds = ['CSB', 'NLT', 'NKJV'] as const;
 
 export const translations: Translation[] = [
-  { id: 'BSB', name: 'Berean Standard Bible' },
-  { id: 'ASV', name: 'American Standard Version' },
-  { id: 'WEBUS', name: 'World English Bible, American English' },
-  { id: 'FBV', name: 'Free Bible Version' },
-  { id: 'LSV', name: 'Literal Standard Version' },
-  { id: 'WMB', name: 'World Messianic Bible' },
-  { id: 'CPDV', name: 'Catholic Public Domain Version' },
-  { id: 'TCENT', name: 'Text-Critical English New Testament' },
-].map((translation) => ({
-  ...translation,
-  providerIds: ['youversion'],
-  requiresLicense: false,
-}));
-export const defaultTranslationId = 'BSB';
-export const defaultComparisonTranslationId = 'ASV';
+  {
+    id: 'CSB',
+    name: 'Christian Standard Bible',
+    providerIds: ['api-bible'],
+    requiresLicense: true,
+  },
+  {
+    id: 'NLT',
+    name: 'New Living Translation',
+    providerIds: ['api-bible'],
+    requiresLicense: true,
+  },
+  {
+    id: 'NKJV',
+    name: 'New King James Version',
+    providerIds: ['api-bible'],
+    requiresLicense: true,
+  },
+  {
+    id: 'KJV',
+    name: 'King James Version',
+    providerIds: ['public-domain'],
+    requiresLicense: false,
+  },
+];
+export const defaultTranslationId = 'CSB';
+export const defaultComparisonTranslationId = 'NLT';
 
 export function supportedTranslationId(
   id: string,
@@ -43,12 +58,12 @@ export function supportedComparisonIds(
 }
 export const bibleProviders: BibleProvider[] = [
   { id: 'youversion', name: 'YouVersion', capabilities: ['text'] },
+  { id: 'api-bible', name: 'API.Bible', capabilities: ['text'] },
   {
     id: 'bible-brain',
     name: 'Bible Brain / Bible.is',
     capabilities: ['text', 'audio', 'video', 'language'],
   },
-  { id: 'esv', name: 'ESV API', capabilities: ['text'] },
   {
     id: 'public-domain',
     name: 'Public-domain sources',
@@ -95,5 +110,5 @@ export type {
   AIContext,
   SourceDocument,
   SourceCitation,
-} from './ai';
-export type { AIProvider } from './models';
+} from './ai.ts';
+export type { AIProvider } from './models.ts';

@@ -1,23 +1,33 @@
 import type { BibleProvider, Translation, Source, User } from './models';
 
 export const translations: Translation[] = [
-  { id: 'BSB', name: 'Berean Standard Bible' },
-  { id: 'ASV', name: 'American Standard Version' },
-  { id: 'WEBUS', name: 'World English Bible, American English' },
-  { id: 'FBV', name: 'Free Bible Version' },
-  { id: 'LSV', name: 'Literal Standard Version' },
-  { id: 'WMB', name: 'World Messianic Bible' },
-  { id: 'CPDV', name: 'Catholic Public Domain Version' },
-  { id: 'TCENT', name: 'Text-Critical English New Testament' },
-].map((translation) => ({ ...translation, providerIds: ['youversion'], requiresLicense: false }));
-translations.push(
-  { id: 'ESV', name: 'English Standard Version', providerIds: ['esv'], requiresLicense: true },
-  { id: 'NIV', name: 'New International Version', providerIds: ['api-bible'], requiresLicense: true },
-  { id: 'KJV', name: 'King James Version', providerIds: ['api-bible'], requiresLicense: false },
-  { id: 'NKJV', name: 'New King James Version', providerIds: ['api-bible'], requiresLicense: true },
-);
-export const defaultTranslationId = 'BSB';
-export const defaultComparisonTranslationId = 'ASV';
+  {
+    id: 'NASB',
+    name: 'New American Standard Bible',
+    providerIds: ['api-bible'],
+    requiresLicense: true,
+  },
+  {
+    id: 'CSB',
+    name: 'Christian Standard Bible',
+    providerIds: ['api-bible'],
+    requiresLicense: true,
+  },
+  {
+    id: 'NKJV',
+    name: 'New King James Version',
+    providerIds: ['api-bible'],
+    requiresLicense: true,
+  },
+  {
+    id: 'KJV',
+    name: 'King James Version',
+    providerIds: ['api-bible'],
+    requiresLicense: false,
+  },
+];
+export const defaultTranslationId = 'NASB';
+export const defaultComparisonTranslationId = 'CSB';
 
 export function supportedTranslationId(
   id: string,

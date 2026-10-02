@@ -10,6 +10,7 @@ import {
   type AITaskType,
 } from '../domain/ai';
 import { aiService } from './client';
+import { reportApiBibleViews } from './fums';
 import { Badge } from '../components';
 import './ai.css';
 
@@ -31,6 +32,7 @@ export function AssistantPanel({
   insertLabel = 'Insert into notes',
   onReplace,
   onInsertGuide,
+  fumsUserId,
 }: {
   taskType?: AITaskType;
   allowScripture?: boolean;
@@ -43,6 +45,7 @@ export function AssistantPanel({
   insertLabel?: string;
   onReplace?: (text: string) => void;
   onInsertGuide?: (sections: NonNullable<AIResponse['sections']>) => void;
+  fumsUserId?: string;
 }) {
   const chatMode = allowScripture;
   const [open, setOpen] = useState(chatMode);
@@ -64,6 +67,7 @@ export function AssistantPanel({
   const [editedSections, setEditedSections] =
     useState<AIResponse['sections']>();
   const [confirmReplace, setConfirmReplace] = useState(false);
+  const [selectedWord, setSelectedWord] = useState<number | null>(null);
   const controller = useRef<AbortController | null>(null);
   const operation = useRef(0);
 
@@ -182,6 +186,17 @@ export function AssistantPanel({
       setFollowUp('');
       if (chatMode) setPrompt('');
       setResponse(result);
+      if (result.bibleResearch) {
+        void reportApiBibleViews(
+          [
+            result.bibleResearch.selectedTranslation?.fumsToken,
+            ...result.bibleResearch.comparisonTranslations.map(
+              (translation) => translation.fumsToken,
+            ),
+          ],
+          fumsUserId,
+        );
+      }
       setEdited(result.text);
       setEditedSections(result.sections);
     } catch (e) {
@@ -239,6 +254,203 @@ export function AssistantPanel({
             </a>
           </details>
         ))}
+      </section>
+    );
+  }
+
+  function researchPanel() {
+    const research = response?.bibleResearch;
+    if (!research) return null;
+    const selected = research.selectedTranslation;
+    return (
+      <section
+        className="bible-research-results"
+        aria-label="Bible research sources"
+      >
+        <h3>Passage research · {research.reference}</h3>
+        {selected ? (
+          <details>
+            <summary>
+              <Badge>SELECTED TRANSLATION</Badge> {selected.id} · Retrieved text
+            </summary>
+            <p className="preserve">{selected.text}</p>
+            <small>{selected.attribution}</small>
+            <small>
+              Rights: display only; this text is not cached, saved locally, or
+              sent to AI. Commercial permission is not confirmed in this
+              connection.
+            </small>
+          </details>
+        ) : (
+          <p>
+            The selected translation could not be retrieved for this request.
+          </p>
+        )}
+        {research.comparisonTranslations.map((item) => (
+          <details key={item.id}>
+            <summary>
+              <Badge>TRANSLATION COMPARISON</Badge> {item.id}
+            </summary>
+            <p className="preserve">{item.text}</p>
+            <small>{item.attribution}</small>
+            <small>
+              Rights: display only; this text is not cached, saved locally, or
+              sent to AI. Commercial permission is not confirmed in this
+              connection.
+            </small>
+          </details>
+        ))}
+        <details>
+          <summary>
+            <Badge>FREE USE BIBLE API</Badge> {research.openTranslation.id} ·
+            Open research text
+          </summary>
+          {research.openTranslation.verses.length ? (
+            research.openTranslation.verses.map((verse) => (
+              <p key={verse.verse}>
+                <b>{verse.verse}</b> {verse.text}
+              </p>
+            ))
+          ) : (
+            <p>Open translation text was unavailable.</p>
+          )}
+        </details>
+        <details open>
+          <summary>
+            <Badge>CROSS REFERENCE</Badge> Open Bible links (
+            {research.crossReferences.length})
+          </summary>
+          {research.crossReferences.length ? (
+            <ul>
+              {research.crossReferences.map((ref) => (
+                <li key={ref.reference}>
+                  {ref.reference}
+                  {ref.score !== undefined ? ` · score ${ref.score}` : ''}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>No cross references were returned for this passage.</p>
+          )}
+          <small>
+            Source:{' '}
+            <a
+              href="https://www.openbible.info/labs/cross-references/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              OpenBible.info dataset via Free Use Bible API
+            </a>
+          </small>
+        </details>
+        <details>
+          <summary>
+            <Badge>{research.originalLanguage.language.toUpperCase()}</Badge>{' '}
+            {research.originalLanguage.language} → English (
+            {research.originalLanguage.words.length})
+          </summary>
+          {research.originalLanguage.words.length ? (
+            <ul>
+              {research.originalLanguage.words.map((word, i) => (
+                <li key={`${word.verse}-${i}`}>
+                  {word.text ? (
+                    <button
+                      type="button"
+                      className="text-button"
+                      onClick={() => setSelectedWord(i)}
+                    >
+                      {word.text}
+                    </button>
+                  ) : (
+                    `Verse ${word.verse}`
+                  )}
+                  {word.lemma ? ` · lemma: ${word.lemma}` : ''}
+                  {word.strongs?.length ? ` · ${word.strongs.join(', ')}` : ''}
+                  {word.morph ? ` · morphology: ${word.morph}` : ''}
+                  {word.occurrences
+                    ? ` · occurrences: ${word.occurrences}`
+                    : ''}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>
+              Word-level annotations are not available for this passage. No
+              gloss or transliteration is inferred.
+            </p>
+          )}
+          {selectedWord !== null &&
+            research.originalLanguage.words[selectedWord] && (
+              <p role="status">
+                Selected source word:{' '}
+                {research.originalLanguage.words[selectedWord].text ??
+                  `verse ${research.originalLanguage.words[selectedWord].verse}`}
+                . Fields shown above come from the source; the selected
+                translation wording is not a one-to-one lexical gloss.
+              </p>
+            )}
+          <small>
+            Strong’s identifiers and fields shown only when supplied by the
+            source.
+          </small>
+        </details>
+        <details>
+          <summary>
+            <Badge>COMMENTARY</Badge> Retrieved commentary (
+            {research.commentaries.length})
+          </summary>
+          {research.commentaries.length ? (
+            research.commentaries.map((item) => (
+              <article key={item.id}>
+                <h4>{item.name}</h4>
+                <pre className="preserve">{item.text}</pre>
+                {item.website && (
+                  <a
+                    href={item.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Open commentary source
+                  </a>
+                )}
+                {item.licenseUrl && (
+                  <a
+                    href={item.licenseUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    License and source information
+                  </a>
+                )}
+              </article>
+            ))
+          ) : (
+            <p>No matching commentary was returned.</p>
+          )}
+        </details>
+        {research.entities.length > 0 && (
+          <details>
+            <summary>
+              <Badge>FREE USE BIBLE API</Badge> People, places, and events
+            </summary>
+            <ul>
+              {research.entities.map((entity) => (
+                <li key={`${entity.type}-${entity.name}`}>
+                  {entity.name} · {entity.type}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+        {research.unavailable.map((item) => (
+          <p className="muted" key={item}>
+            {item} are unavailable for this passage.
+          </p>
+        ))}
+        <small>
+          Source material is kept separate from the ScriptureSmart AI synthesis
+          above.
+        </small>
       </section>
     );
   }
@@ -417,6 +629,15 @@ export function AssistantPanel({
                   </button>
                 )}
               </div>
+              {busy && (
+                <p className="muted" role="status">
+                  {baseContext.passageReference
+                    ? `Studying ${baseContext.passageReference}. `
+                    : ''}
+                  Retrieving your selected translation and available open Bible
+                  research, then preparing the ScriptureSmart AI synthesis…
+                </p>
+              )}
             </>
           )}
 
@@ -481,6 +702,7 @@ export function AssistantPanel({
                 </p>
               ))}
               {sourcesPanel()}
+              {researchPanel()}
 
               {editedSections ? (
                 guideSections.map((k) => (

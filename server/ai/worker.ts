@@ -10,7 +10,9 @@ import {
 } from './translationProviders.ts';
 import { AIError, isRecord, type AIErrorCode } from '../../src/domain/ai.ts';
 import { normalizeReference } from '../../src/domain/bible.ts';
+import { testamentForReference } from '../../src/domain/bible.ts';
 import { readRequest } from './validation.ts';
+import { retrieveOpenBibleResearch } from './freeUseBible.ts';
 import {
   generateWithBinding,
   type AIBinding,
@@ -34,6 +36,7 @@ export interface Env extends ModelConfig {
 const statusCodes: Record<AIErrorCode, number> = {
   'auth-unavailable': 503,
   'scripture-unavailable': 503,
+  'translation-unavailable': 404,
   'setup-required': 503,
   'sign-in': 401,
   forbidden: 403,
@@ -193,16 +196,16 @@ export function createWorker(
           apiKey: env.API_BIBLE_KEY,
           transport,
         });
-        const esvConnected = !!env.ESV_API_KEY?.trim();
-        const translations = [
-          ...(env.YOUVERSION_API?.trim() ? youVersionTranslations : []),
-          ...apiBibleTranslations,
-          ...(esvConnected ? [{ id: 'ESV', name: 'English Standard Version' }] : []),
-        ];
+        const translations = apiBibleTranslations.filter((item) =>
+          ['NASB', 'CSB', 'NKJV', 'KJV'].includes(item.id),
+        );
         return json({
           available: ready(env) && translations.length > 0,
           provider: 'ScriptureSmart Bible providers',
           translations,
+          unavailableTranslationIds: ['NASB', 'CSB', 'NKJV', 'KJV'].filter(
+            (id) => !translations.some((item) => item.id === id),
+          ),
         });
       }
       if (path === '/api/bible/passage' && request.method === 'GET') {
@@ -220,7 +223,9 @@ export function createWorker(
           const normalized = normalizeReference(reference);
           if (!normalized || !/^[A-Z0-9]{2,8}$/.test(translationId))
             throw new AIError('invalid');
-          const passage = youVersionTranslations.some((item) => item.id === translationId)
+          const passage = youVersionTranslations.some(
+            (item) => item.id === translationId,
+          )
             ? await retrieveYouVersionPassage({
                 apiKey: env.YOUVERSION_API,
                 reference: normalized,
@@ -244,7 +249,10 @@ export function createWorker(
           const safe =
             error instanceof AIError
               ? error
-              : new AIError('scripture-unavailable');
+              : error instanceof Error &&
+                  error.message === 'api-bible-license-required'
+                ? new AIError('translation-unavailable')
+                : new AIError('scripture-unavailable');
           return json(
             { code: safe.code, message: safe.message },
             statusCodes[safe.code],
@@ -269,10 +277,131 @@ export function createWorker(
         await checkAllowance(env, userId);
         const input = await readRequest(request);
         const sources = input.bible
-          ? await retrievePassages(input.bible.references)
+          ? await retrievePassages(input.bible.references, transport)
           : [];
-        const result = await generateWithBinding(env.AI, env, input, sources);
-        return json(result);
+        const reference = normalizeReference(
+          input.context?.passageReference ?? input.bible?.references[0] ?? '',
+        );
+        const translationId = input.context?.translationIds?.[0] ?? '';
+        let bibleResearch:
+          Parameters<typeof generateWithBinding>[4] | undefined;
+        let researchFailure = false;
+        if (
+          input.bible &&
+          reference &&
+          ['NASB', 'CSB', 'NKJV', 'KJV'].includes(translationId)
+        ) {
+          const testament = testamentForReference(reference);
+          if (testament) {
+            const translationIds = (
+              input.context?.translationIds ?? [translationId]
+            )
+              .filter((id) => ['NASB', 'CSB', 'NKJV', 'KJV'].includes(id))
+              .slice(0, 4);
+            const [selectedResults, openResult] = await Promise.all([
+              Promise.allSettled(
+                (translationIds.length ? translationIds : [translationId]).map(
+                  (id) =>
+                    retrieveApiBiblePassage({
+                      apiKey: env.API_BIBLE_KEY,
+                      reference,
+                      translationId: id,
+                      transport,
+                    }),
+                ),
+              ),
+              Promise.allSettled([
+                retrieveOpenBibleResearch({ reference, transport }),
+              ]),
+            ]);
+            const selectedResult = selectedResults[0];
+            const researchResult = openResult[0];
+            const toSelected = (
+              item: PromiseSettledResult<
+                Awaited<ReturnType<typeof retrieveApiBiblePassage>>
+              >,
+              id: string,
+            ) =>
+              item.status === 'fulfilled'
+                ? {
+                    id,
+                    name: id,
+                    text: item.value.text,
+                    attribution: item.value.attribution,
+                    sourceUrl: item.value.sourceUrl,
+                    rights: item.value.rights,
+                    ...(item.value.fumsToken
+                      ? { fumsToken: item.value.fumsToken }
+                      : {}),
+                  }
+                : null;
+            const comparisonTranslations = selectedResults
+              .slice(1)
+              .flatMap((item, index) => {
+                const translated = toSelected(item, translationIds[index + 1]);
+                return translated ? [translated] : [];
+              });
+            if (
+              selectedResults.some((item) => item.status === 'fulfilled') ||
+              researchResult.status === 'fulfilled'
+            ) {
+              bibleResearch = {
+                reference,
+                selectedTranslationId: translationId,
+                testament,
+                ...(toSelected(
+                  selectedResult,
+                  translationIds[0] ?? translationId,
+                )
+                  ? {
+                      selected: toSelected(
+                        selectedResult,
+                        translationIds[0] ?? translationId,
+                      )!,
+                    }
+                  : {}),
+                comparisons: comparisonTranslations,
+                data:
+                  researchResult.status === 'fulfilled'
+                    ? researchResult.value
+                    : {
+                        openTranslation: { id: 'BSB', verses: [] },
+                        references: [],
+                        words: [],
+                        commentaries: [],
+                        entities: [],
+                        unavailable: ['Open research data'],
+                        source: 'Free Use Bible API' as const,
+                      },
+              };
+              if (
+                selectedResults.some((item) => item.status === 'rejected') ||
+                researchResult.status === 'rejected'
+              )
+                researchFailure = true;
+            } else {
+              researchFailure = true;
+            }
+          }
+        }
+        const result = await generateWithBinding(
+          env.AI,
+          env,
+          input,
+          sources,
+          bibleResearch,
+        );
+        return json({
+          ...result,
+          ...(researchFailure
+            ? {
+                warnings: [
+                  ...(result.warnings ?? []),
+                  'The selected translation or open research could not be fully loaded. AI synthesis continued with available sources.',
+                ],
+              }
+            : {}),
+        });
       } catch (error) {
         const safe =
           error instanceof AIError ? error : new AIError('unavailable');

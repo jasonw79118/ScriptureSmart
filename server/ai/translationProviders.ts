@@ -6,12 +6,21 @@ export interface LicensedBiblePassage {
   text: string;
   attribution: string;
   sourceUrl: string;
+  fumsToken?: string;
+  rights: {
+    displayAllowed: boolean;
+    aiContextAllowed: boolean;
+    cachingAllowed: boolean;
+    localStorageAllowed: boolean;
+    commercialUseAllowed: boolean;
+  };
 }
 
-const apiBibleIds = ['KJV', 'NKJV', 'NIV'] as const;
+// NIV remains available to existing saved requests; only the four requested
+// editions are exposed as new study choices/status options.
+const apiBibleIds = ['NASB', 'CSB', 'NKJV', 'KJV', 'NIV'] as const;
 const apiBibleRoot = 'https://rest.api.bible/v1';
 const apiBibleSite = 'https://api.bible/';
-const apiBibleCache = new Map<string, { expires: number; value: unknown }>();
 
 function record(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -23,7 +32,9 @@ function boundedText(value: unknown, max: number): string | null {
     : null;
 }
 
-function apiBiblePassageRoute(reference: string): { kind: 'chapters' | 'passages'; id: string } | null {
+function apiBiblePassageRoute(
+  reference: string,
+): { kind: 'chapters' | 'passages'; id: string } | null {
   const usfm = referenceToUsfm(reference);
   if (!usfm) return null;
   const chapter = /^([A-Z0-9]{3}\.\d+)$/.exec(usfm);
@@ -52,6 +63,7 @@ async function apiBibleRequest(
   } catch {
     throw Error('api-bible-unavailable');
   }
+  if (response.status === 403) throw Error('api-bible-license-required');
   if (!response.ok) throw Error('api-bible-unavailable');
   try {
     const raw = await response.text();
@@ -67,10 +79,6 @@ async function apiBibleMetadata(
   translationId: string,
   transport: typeof fetch,
 ): Promise<Record<string, unknown> | null> {
-  const cacheKey = `${translationId}:${apiKey}`;
-  const cached = apiBibleCache.get(cacheKey);
-  if (cached && cached.expires > Date.now())
-    return record(cached.value) ? cached.value : null;
   const query = new URLSearchParams({
     language: 'eng',
     abbreviation: translationId,
@@ -81,11 +89,10 @@ async function apiBibleMetadata(
   const bible = body.data.find(
     (entry) =>
       record(entry) &&
-      entry.abbreviation?.toString().toUpperCase() === translationId,
+      (entry.abbreviation?.toString().toUpperCase() === translationId ||
+        entry.abbreviationLocal?.toString().toUpperCase() === translationId),
   );
   if (!record(bible)) return null;
-  if (apiBibleCache.size >= 8) apiBibleCache.clear();
-  apiBibleCache.set(cacheKey, { expires: Date.now() + 30 * 60 * 1000, value: bible });
   return bible;
 }
 
@@ -146,14 +153,14 @@ export async function retrieveApiBiblePassage({
     'content-type': 'text',
     'include-titles': 'false',
     'include-verse-numbers': 'true',
+    'fums-version': '3',
   });
   const body = await apiBibleRequest(
     apiKey,
     `/bibles/${encodeURIComponent(bibleId)}/${passage.kind}/${encodeURIComponent(passage.id)}?${query}`,
     transport,
   );
-  if (!record(body) || !record(body.data))
-    throw Error('api-bible-unavailable');
+  if (!record(body) || !record(body.data)) throw Error('api-bible-unavailable');
   const text = boundedText(body.data.content, 50000);
   if (!text) throw Error('api-bible-unavailable');
   const copyright = boundedText(body.data.copyright, 2000);
@@ -163,6 +170,17 @@ export async function retrieveApiBiblePassage({
     text,
     attribution: copyright ?? `${translationId} text provided by API.Bible.`,
     sourceUrl: apiBibleSite,
+    rights: {
+      displayAllowed: true,
+      aiContextAllowed: false,
+      cachingAllowed: false,
+      localStorageAllowed: false,
+      // The present key/license's commercial use has not been verified here.
+      commercialUseAllowed: false,
+    },
+    ...(record(body.meta) && typeof body.meta.fumsToken === 'string'
+      ? { fumsToken: body.meta.fumsToken }
+      : {}),
   };
 }
 
@@ -214,5 +232,12 @@ export async function retrieveEsvPassage({
     attribution:
       'ESV. Scripture quotations are from the ESV® Bible (The Holy Bible, English Standard Version®), © 2001 by Crossway, a publishing ministry of Good News Publishers. Used by permission. All rights reserved. The ESV text may not be quoted in any publication made available to the public by a Creative Commons license. The ESV may not be translated into any other language.',
     sourceUrl: `https://www.esv.org/${encodeURIComponent(canonical)}/`,
+    rights: {
+      displayAllowed: true,
+      aiContextAllowed: false,
+      cachingAllowed: false,
+      localStorageAllowed: false,
+      commercialUseAllowed: false,
+    },
   };
 }

@@ -12,6 +12,17 @@ The user message contains a task, prompt, JSON context, and optional priorConver
 export function messagesFor(
   request: AIRequest,
   sources: RetrievedPassage[] = [],
+  research?: {
+    reference: string;
+    selectedTranslationId: string;
+    testament: 'old' | 'new';
+    openTranslation: unknown;
+    crossReferences: unknown[];
+    words: unknown[];
+    commentaries: unknown[];
+    entities: { type: 'people' | 'places' | 'events'; name: string }[];
+    unavailable: string[];
+  },
 ) {
   const format =
     request.taskType === 'discussion-guide'
@@ -25,6 +36,9 @@ export function messagesFor(
         format +
         (sources.length
           ? '\nUse the retrievedScripture as the primary textual evidence. Cite the exact book, chapter, and verse for each textual claim, identify WEB, and distinguish paraphrase from exact quotation. Structure cross-passage questions as: Direct answer; Passage comparison; Major interpretations; What the text settles and leaves open. For adoption/predestination, first identify the people as the object and adoption as the stated purpose or goal in the supplied English clause, with Christ as the means. Do not reduce this to only an impersonal process or claim this alone resolves individual versus corporate election. Prefer paraphrases with verse references; the exact Scripture text is displayed separately. Fairly explain Reformed, Arminian/Wesleyan, and corporate-election readings as general interpretive summaries, not retrieved commentary. These traditions contain diverse views; distinguish foreknowledge-based individual election from corporate election instead of merging them. Do not force the user to accept one interpretation or claim grammar alone resolves the debate. Do not claim every relevant passage was searched. Use only supplied text for quotations; do not invent Greek lexical evidence.'
+          : '') +
+        (research
+          ? "\nAdditional retrieved research is supplied separately: open translation verses, cross references, word-level Strong's/lemma/morphology annotations when available, commentary excerpts, and entities. Copyrighted selected-translation text is deliberately excluded from model context because this deployment has no confirmed AI-context license metadata. Do not claim what a selected copyrighted version specifically says unless its wording appears in supplied model context. Treat open findings as source data only where present. Do not infer glosses or transliterations not supplied, do not claim unavailable sources were searched, and distinguish Free Use Bible API results from AI synthesis."
           : ''),
     },
     {
@@ -34,6 +48,7 @@ export function messagesFor(
         prompt: request.prompt,
         priorConversation: request.conversation ?? [],
         retrievedScripture: sources,
+        openBibleResearch: research,
         selectedContext: request.context ?? {},
       }),
     },

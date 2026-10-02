@@ -16,9 +16,8 @@ export function Connections() {
   const [bibleStatus, setBibleStatus] = useState<
     'checking' | 'ready' | 'unavailable'
   >('checking');
-  const [bibleConnection, setBibleConnection] = useState<BibleProviderStatus | null>(
-    null,
-  );
+  const [bibleConnection, setBibleConnection] =
+    useState<BibleProviderStatus | null>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -147,8 +146,8 @@ export function Connections() {
           </Badge>
           <h3>Available Bible text</h3>
           <p>
-            Bible content is retrieved through ScriptureSmart&apos;s secure server
-            connections. Provider keys stay off member devices.
+            Bible content is retrieved through ScriptureSmart&apos;s secure
+            server connections. Provider keys stay off member devices.
           </p>
           <strong role="status">
             {bibleStatus === 'checking'
@@ -165,6 +164,13 @@ export function Connections() {
                 .join(', ')}
             </p>
           ) : null}
+          {bibleConnection?.unavailableTranslationIds?.length ? (
+            <p className="muted">
+              Not detected for the current API.Bible key (or temporarily
+              unreachable):{' '}
+              {bibleConnection.unavailableTranslationIds.join(', ')}.
+            </p>
+          ) : null}
           <a className="button primary wide" href="#study">
             Open Bible study
           </a>
@@ -172,36 +178,67 @@ export function Connections() {
         {bibleProviders
           .filter((provider) => provider.id !== 'youversion')
           .map((provider) => {
-            const availableIds = new Set(bibleConnection?.translations.map((item) => item.id) ?? []);
-            const configured = provider.id === 'esv'
-              ? availableIds.has('ESV')
-              : provider.id === 'api-bible'
-                ? ['KJV', 'NKJV', 'NIV'].some((id) => availableIds.has(id))
-                : false;
+            const availableIds = new Set(
+              bibleConnection?.translations.map((item) => item.id) ?? [],
+            );
+            const configured =
+              provider.id === 'esv'
+                ? availableIds.has('ESV')
+                : provider.id === 'api-bible'
+                  ? ['NASB', 'CSB', 'NKJV', 'KJV'].some((id) =>
+                      availableIds.has(id),
+                    )
+                  : false;
             return (
-            <section className="panel connection-card" key={provider.id}>
-              <span className="provider-logo">▤</span>
-              <Badge>{bibleStatus === 'checking' ? 'Checking connection' : configured ? 'Connected' : 'Setup needed'}</Badge>
-              <h3>{provider.name}</h3>
-              <p>
-                {provider.id === 'api-bible'
-                  ? 'KJV, NKJV, and NIV are requested through API.Bible. Access depends on your account’s selected licenses.'
-                  : provider.id === 'esv'
-                    ? 'ESV passages use Crossway’s official API and are shown with its required attribution.'
-                    : `${provider.capabilities.join(' · ')}. Access depends on approved APIs and applicable rights.`}
-              </p>
-              {provider.id === 'api-bible' && <small>Cloudflare secret: API_BIBLE_KEY</small>}
-              {provider.id === 'esv' && <small>Cloudflare secret: ESV_API_KEY</small>}
-              {provider.id === 'api-bible' || provider.id === 'esv' ? (
-                <a className="button secondary wide" href={provider.id === 'api-bible' ? 'https://api.bible/' : 'https://api.esv.org/'} target="_blank" rel="noopener noreferrer">
-                  {provider.id === 'api-bible' ? 'Open API.Bible account ↗' : 'Open Crossway ESV API ↗'}
-                </a>
-              ) : (
-                <button className="button secondary wide" onClick={() => setSelected(provider.name)}>
-                  Connection details →
-                </button>
-              )}
-            </section>
+              <section className="panel connection-card" key={provider.id}>
+                <span className="provider-logo">▤</span>
+                <Badge>
+                  {provider.id === 'esv'
+                    ? 'Legacy route'
+                    : bibleStatus === 'checking'
+                      ? 'Checking connection'
+                      : configured
+                        ? 'Connected'
+                        : 'Setup needed'}
+                </Badge>
+                <h3>{provider.name}</h3>
+                <p>
+                  {provider.id === 'api-bible'
+                    ? 'NASB, CSB, NKJV, and KJV are requested through API.Bible. Access depends on your account’s selected licenses.'
+                    : provider.id === 'esv'
+                      ? 'The existing Crossway ESV API adapter remains available for legacy requests; active study choices are NASB, CSB, NKJV, and KJV.'
+                      : `${provider.capabilities.join(' · ')}. Access depends on approved APIs and applicable rights.`}
+                </p>
+                {provider.id === 'api-bible' && (
+                  <small>Cloudflare secret: API_BIBLE_KEY</small>
+                )}
+                {provider.id === 'esv' && (
+                  <small>Cloudflare secret: ESV_API_KEY</small>
+                )}
+                {provider.id === 'api-bible' || provider.id === 'esv' ? (
+                  <a
+                    className="button secondary wide"
+                    href={
+                      provider.id === 'api-bible'
+                        ? 'https://api.bible/'
+                        : 'https://api.esv.org/'
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {provider.id === 'api-bible'
+                      ? 'Open API.Bible account ↗'
+                      : 'Open Crossway ESV API ↗'}
+                  </a>
+                ) : (
+                  <button
+                    className="button secondary wide"
+                    onClick={() => setSelected(provider.name)}
+                  >
+                    Connection details →
+                  </button>
+                )}
+              </section>
             );
           })}
       </div>

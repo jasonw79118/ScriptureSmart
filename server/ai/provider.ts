@@ -6,8 +6,10 @@ import {
   guideSections,
   type AIRequest,
   type AIResponse,
+  type TranslationRights,
 } from '../../src/domain/ai.ts';
 import { messagesFor } from './instructions.ts';
+import type { OpenBibleResearch } from './freeUseBible.ts';
 
 export interface AIBinding {
   run(model: string, input: Record<string, unknown>): Promise<unknown>;
@@ -32,12 +34,34 @@ async function run(
   model: string,
   request: AIRequest,
   sources: RetrievedPassage[] = [],
+  research?: {
+    reference: string;
+    selectedTranslationId: string;
+    testament: 'old' | 'new';
+    data: OpenBibleResearch;
+  },
 ) {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
       binding.run(model, {
-        messages: messagesFor(request, sources),
+        messages: messagesFor(
+          request,
+          sources,
+          research
+            ? {
+                reference: research.reference,
+                selectedTranslationId: research.selectedTranslationId,
+                testament: research.testament,
+                openTranslation: research.data.openTranslation,
+                crossReferences: research.data.references,
+                words: research.data.words,
+                commentaries: research.data.commentaries,
+                entities: research.data.entities,
+                unavailable: research.data.unavailable,
+              }
+            : undefined,
+        ),
         stream: false,
         // Keep interactive Gemma requests from spending the response budget on thinking.
         ...(model === '@cf/google/gemma-4-26b-a4b-it'
@@ -74,17 +98,51 @@ export async function generateWithBinding(
   config: ModelConfig,
   request: AIRequest,
   sources: RetrievedPassage[] = [],
+  research?: {
+    reference: string;
+    selectedTranslationId: string;
+    testament: 'old' | 'new';
+    selected?: {
+      text: string;
+      attribution: string;
+      sourceUrl: string;
+      name: string;
+      fumsToken?: string;
+      rights: TranslationRights;
+    };
+    comparisons: {
+      id: string;
+      name: string;
+      text: string;
+      attribution: string;
+      sourceUrl: string;
+      fumsToken?: string;
+      rights: TranslationRights;
+    }[];
+    data: OpenBibleResearch;
+  },
 ): Promise<AIResponse> {
   let model = config.SCRIPTURESMART_AI_MODEL;
   const warnings = [
     'AI synthesis can contain errors. Review Scripture, source attributions, and theological claims before using this draft.',
     sources.length
       ? 'Bible passages were retrieved in the World English Bible (public domain). Interpretive summaries are AI synthesis; no commentary or original-language sources were retrieved.'
-      : 'No external sources were searched. Supplied source attributions have not been independently verified.',
+      : 'No external WEB passage retrieval was requested. Supplied source attributions have not been independently verified.',
+    ...(research
+      ? research.data.unavailable.map(
+          (item) =>
+            `${item} could not be loaded from the open research service.`,
+        )
+      : []),
+    ...(research && !research.data.words.length
+      ? [
+          'Original-language word annotations are unavailable for this passage in the connected open dataset.',
+        ]
+      : []),
   ];
   let raw: unknown;
   try {
-    raw = await run(binding, model, request, sources);
+    raw = await run(binding, model, request, sources, research);
   } catch (error) {
     // No retries for timeouts, limits, malformed output, or general provider failures.
     if (
@@ -95,7 +153,7 @@ export async function generateWithBinding(
     )
       throw error;
     model = config.SCRIPTURESMART_AI_FALLBACK_MODEL;
-    raw = await run(binding, model, request, sources);
+    raw = await run(binding, model, request, sources, research);
     warnings.push('The configured fallback model was used.');
   }
   let text = outputText(raw);
@@ -123,5 +181,42 @@ export async function generateWithBinding(
     model,
     createdAt: new Date().toISOString(),
     warnings,
+    ...(research
+      ? {
+          bibleResearch: {
+            reference: research.reference,
+            testament: research.testament,
+            ...(research.selected
+              ? {
+                  selectedTranslation: {
+                    id: research.selectedTranslationId,
+                    name: research.selected.name,
+                    text: research.selected.text,
+                    attribution: research.selected.attribution,
+                    sourceUrl: research.selected.sourceUrl,
+                    rights: research.selected.rights,
+                    ...(research.selected.fumsToken
+                      ? { fumsToken: research.selected.fumsToken }
+                      : {}),
+                  },
+                }
+              : {}),
+            comparisonTranslations: research.comparisons,
+            openTranslation: research.data.openTranslation,
+            crossReferences: research.data.references,
+            originalLanguage: {
+              language:
+                research.testament === 'old'
+                  ? ('Hebrew' as const)
+                  : ('Greek' as const),
+              words: research.data.words,
+            },
+            commentaries: research.data.commentaries,
+            entities: research.data.entities,
+            unavailable: research.data.unavailable,
+            source: research.data.source,
+          },
+        }
+      : {}),
   };
 }

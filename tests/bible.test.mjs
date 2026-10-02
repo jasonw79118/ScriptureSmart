@@ -195,14 +195,22 @@ test('API.Bible resolves only licensed versions and requests plain passage text 
       calls.push({ url: String(url), init });
       if (String(url).includes('/bibles?'))
         return Response.json({
-          data: [{ id: 'nkjv-version', abbreviation: 'NKJV', name: 'New King James Version' }],
+          data: [
+            {
+              id: 'nkjv-version',
+              abbreviation: 'NKJV',
+              name: 'New King James Version',
+            },
+          ],
         });
       return Response.json({
         data: {
-          content: '16 For God so loved the world. 17 For God did not send His Son.',
+          content:
+            '16 For God so loved the world. 17 For God did not send His Son.',
           reference: 'John 3:16-17',
           copyright: 'Scripture quotations are from the NKJV.',
         },
+        meta: { fumsToken: 'fums-view-token' },
       });
     },
   });
@@ -211,17 +219,34 @@ test('API.Bible resolves only licensed versions and requests plain passage text 
   assert.equal(calls[0].init.headers['api-key'], 'private-api-bible-key');
   assert.match(calls[1].url, /JHN\.3\.16-JHN\.3\.17/);
   assert.match(calls[1].url, /content-type=text/);
+  assert.match(calls[1].url, /fums-version=3/);
   assert.equal(passage.translationId, 'NKJV');
   assert.match(passage.attribution, /NKJV/);
+  assert.equal(passage.fumsToken, 'fums-view-token');
   assert.ok(!JSON.stringify(passage).includes('private-api-bible-key'));
-  await assert.rejects(
-    retrieveApiBiblePassage({
-      apiKey: 'private-api-bible-key',
-      reference: 'John 3:16',
-      translationId: 'NIV',
-      transport: async () => Response.json({ data: [] }),
-    }),
-  );
+  const legacyNiv = await retrieveApiBiblePassage({
+    apiKey: 'private-api-bible-key',
+    reference: 'John 3:16',
+    translationId: 'NIV',
+    transport: async (url) =>
+      String(url).includes('/bibles?')
+        ? Response.json({
+            data: [
+              {
+                id: 'legacy-niv',
+                abbreviation: 'NIV',
+                name: 'New International Version',
+              },
+            ],
+          })
+        : Response.json({
+            data: {
+              content: 'Legacy request still works.',
+              reference: 'John 3:16',
+            },
+          }),
+  });
+  assert.equal(legacyNiv.translationId, 'NIV');
 });
 
 test('ESV requests use Crossway authorization and preserve the required ESV notice', async () => {

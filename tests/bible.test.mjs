@@ -207,7 +207,8 @@ test('YouVersion discovers only authorized CSB, NLT and NKJV editions', async ()
     { id: 'NKJV', name: 'New King James Version' },
   ]);
   assert.equal(calls.length, 1);
-  assert.match(calls[0].url, /language_ranges=en/);
+  assert.match(calls[0].url, /language_ranges%5B%5D=en/);
+  assert.match(calls[0].url, /page_size=99/);
   assert.equal(calls[0].init.headers['X-YVP-App-Key'], 'private-yvp-key');
   assert.ok(!JSON.stringify(translations).includes('private-yvp-key'));
 });

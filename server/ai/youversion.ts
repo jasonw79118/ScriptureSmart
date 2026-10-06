@@ -118,7 +118,8 @@ async function listEnglishBibles(
   const bibles: Record<string, unknown>[] = [];
   let pageToken = '';
   for (let page = 0; page < 10; page++) {
-    const query = new URLSearchParams({ language_ranges: 'en', page_size: '100' });
+    const query = new URLSearchParams({ page_size: '99' });
+    query.append('language_ranges[]', 'en');
     if (pageToken) query.set('page_token', pageToken);
     let response: Response;
     try {

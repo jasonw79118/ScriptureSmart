@@ -191,10 +191,34 @@ export function createWorker(
       if (path === '/api/ai/status' && request.method === 'GET')
         return json({ available: ready(env), provider: 'scripturesmart-ai' });
       if (path === '/api/bible/status' && request.method === 'GET') {
-        const youVersionActiveTranslations = await listYouVersionTranslations({
-          apiKey: env.YOUVERSION_API,
-          transport,
-        });
+        let youVersionActiveTranslations: Awaited<
+          ReturnType<typeof listYouVersionTranslations>
+        > = [];
+        let youVersionStatus:
+          | 'connected'
+          | 'not-configured'
+          | 'unauthorized'
+          | 'not-approved'
+          | 'unavailable' = env.YOUVERSION_API?.trim()
+          ? 'connected'
+          : 'not-configured';
+        if (env.YOUVERSION_API?.trim()) {
+          try {
+            youVersionActiveTranslations = await listYouVersionTranslations({
+              apiKey: env.YOUVERSION_API,
+              transport,
+            });
+            if (!youVersionActiveTranslations.length)
+              youVersionStatus = 'not-approved';
+          } catch (error) {
+            youVersionStatus =
+              error instanceof Error && error.message === 'youversion-unauthorized'
+                ? 'unauthorized'
+                : error instanceof Error && error.message === 'youversion-forbidden'
+                  ? 'not-approved'
+                  : 'unavailable';
+          }
+        }
         const translations = [
           { id: 'KJV', name: 'King James Version' },
           ...youVersionActiveTranslations,
@@ -203,6 +227,7 @@ export function createWorker(
           available: ready(env) && translations.length > 0,
           provider: 'ScriptureSmart Bible providers',
           translations,
+          youVersionStatus,
           unavailableTranslationIds: youVersionTranslationIds.filter(
             (id) => !translations.some((item) => item.id === id),
           ),
@@ -248,6 +273,8 @@ export function createWorker(
                   [
                     'youversion-not-configured',
                     'youversion-unavailable',
+                    'youversion-unauthorized',
+                    'youversion-forbidden',
                     'invalid-youversion-request',
                   ].includes(error.message)
                 ? new AIError('translation-unavailable')

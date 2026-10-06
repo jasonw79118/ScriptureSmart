@@ -166,8 +166,15 @@ export function Connections() {
           ) : null}
           {bibleConnection?.unavailableTranslationIds?.length ? (
             <p className="muted">
-            Not detected for the current YouVersion app key (or temporarily
-              unreachable):{' '}
+              {bibleConnection.youVersionStatus === 'not-configured'
+                ? 'Cloudflare is missing the YOUVERSION_API secret.'
+                : bibleConnection.youVersionStatus === 'unauthorized'
+                  ? 'YouVersion rejected the app key. Check the YOUVERSION_API secret in Cloudflare.'
+                  : bibleConnection.youVersionStatus === 'not-approved'
+                    ? 'The app key is reachable, but CSB, NLT, and NKJV are not authorized for this app yet. Complete the YouVersion access approval for your website.'
+                    : bibleConnection.youVersionStatus === 'unavailable'
+                      ? 'The YouVersion Bible service could not be reached. Retry the connection check.'
+                      : 'Not detected for the current YouVersion app key:'}{' '}
               {bibleConnection.unavailableTranslationIds.join(', ')}.
             </p>
           ) : null}

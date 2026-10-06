@@ -130,7 +130,14 @@ async function listEnglishBibles(
     } catch {
       throw Error('youversion-unavailable');
     }
-    if (!response.ok) throw Error('youversion-unavailable');
+    if (!response.ok)
+      throw Error(
+        response.status === 401
+          ? 'youversion-unauthorized'
+          : response.status === 403
+            ? 'youversion-forbidden'
+            : 'youversion-unavailable',
+      );
     let body: unknown;
     try {
       const raw = await response.text();
@@ -172,18 +179,14 @@ export async function listYouVersionTranslations({
   transport?: typeof fetch;
 }): Promise<{ id: ActiveYouVersionId; name: string }[]> {
   if (!apiKey?.trim()) return [];
-  try {
-    const bibles = await listEnglishBibles(apiKey, transport);
-    return activeYouVersionIds.flatMap((id) => {
-      const bible = bibles.find((item) => bibleAbbreviation(item) === id);
-      if (!bible || !bibleNumericId(bible)) return [];
-      const title = bible.title ?? bible.name;
-      const name = typeof title === 'string' && title.trim() ? title.trim() : id;
-      return [{ id, name: name.slice(0, 120) }];
-    });
-  } catch {
-    return [];
-  }
+  const bibles = await listEnglishBibles(apiKey, transport);
+  return activeYouVersionIds.flatMap((id) => {
+    const bible = bibles.find((item) => bibleAbbreviation(item) === id);
+    if (!bible || !bibleNumericId(bible)) return [];
+    const title = bible.title ?? bible.name;
+    const name = typeof title === 'string' && title.trim() ? title.trim() : id;
+    return [{ id, name: name.slice(0, 120) }];
+  });
 }
 
 export function referenceToUsfm(reference: string): string | null {

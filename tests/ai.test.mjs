@@ -252,6 +252,19 @@ test('worker discovers licensed YouVersion translations and adds public KJV sepa
   );
   assert.ok(!JSON.stringify(body).includes('youversion-server-secret'));
 });
+test('Bible status distinguishes an invalid YouVersion app key from missing editions', async () => {
+  const response = await createWorker(async (url) => {
+    if (String(url).includes('/bibles?'))
+      return Response.json({ message: 'Unauthorized' }, { status: 401 });
+    return verified();
+  }).fetch(
+    new Request('https://worker.example.test/api/bible/status'),
+    env({ YOUVERSION_API: 'private-server-secret' }),
+  );
+  const body = await response.json();
+  assert.equal(body.youVersionStatus, 'unauthorized');
+  assert.ok(!JSON.stringify(body).includes('private-server-secret'));
+});
 test('worker proxies YouVersion passages only after Appwrite verification', async () => {
   const calls = [];
   const worker = createWorker(async (url, options) => {

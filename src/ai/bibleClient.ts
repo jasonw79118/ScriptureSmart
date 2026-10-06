@@ -7,6 +7,12 @@ export interface BibleProviderStatus {
   provider: string;
   translations: { id: string; name: string }[];
   unavailableTranslationIds?: string[];
+  youVersionStatus?:
+    | 'connected'
+    | 'not-configured'
+    | 'unauthorized'
+    | 'not-approved'
+    | 'unavailable';
 }
 
 export interface BiblePassageResult {
@@ -134,5 +140,15 @@ export async function getBibleProviderStatus(
           (id): id is string => typeof id === 'string',
         )
       : [],
+    ...(typeof body.youVersionStatus === 'string' &&
+    ['connected', 'not-configured', 'unauthorized', 'not-approved', 'unavailable'].includes(
+      body.youVersionStatus,
+    )
+      ? {
+          youVersionStatus: body.youVersionStatus as NonNullable<
+            BibleProviderStatus['youVersionStatus']
+          >,
+        }
+      : {}),
   };
 }

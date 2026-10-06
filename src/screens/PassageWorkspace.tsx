@@ -169,7 +169,7 @@ export function PassageWorkspace({
         <div className="scripture-attribution">
           <span>{result.attribution}</span>
           <a href={result.sourceUrl} target="_blank" rel="noopener noreferrer">
-            {result.translationId === 'KJV' ? 'Open public KJV source ↗' : 'Open API.Bible ↗'}
+            {result.translationId === 'KJV' ? 'Open public KJV source ↗' : 'Open YouVersion ↗'}
           </a>
         </div>
         {result.rights && (

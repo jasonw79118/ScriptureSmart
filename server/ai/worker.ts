@@ -1,16 +1,16 @@
 import { retrievePassages } from './scripture.ts';
 import {
+  listYouVersionTranslations,
   retrieveYouVersionPassage,
   youVersionTranslations,
 } from './youversion.ts';
-import {
-  listApiBibleTranslations,
-  retrieveApiBiblePassage,
-} from './translationProviders.ts';
 import { AIError, isRecord, type AIErrorCode } from '../../src/domain/ai.ts';
 import { normalizeReference } from '../../src/domain/bible.ts';
 import { testamentForReference } from '../../src/domain/bible.ts';
-import { activeTranslationIds, apiBibleTranslationIds } from '../../src/domain/providers.ts';
+import {
+  activeTranslationIds,
+  youVersionTranslationIds,
+} from '../../src/domain/providers.ts';
 import { readRequest } from './validation.ts';
 import { retrieveOpenBibleResearch } from './freeUseBible.ts';
 import { retrieveKjvPassage } from './scripture.ts';
@@ -31,7 +31,6 @@ export interface Env extends ModelConfig {
   APPWRITE_PROJECT_ID: string;
   ALLOWED_ORIGINS: string;
   YOUVERSION_API?: string;
-  API_BIBLE_KEY?: string;
 }
 const statusCodes: Record<AIErrorCode, number> = {
   'auth-unavailable': 503,
@@ -192,23 +191,19 @@ export function createWorker(
       if (path === '/api/ai/status' && request.method === 'GET')
         return json({ available: ready(env), provider: 'scripturesmart-ai' });
       if (path === '/api/bible/status' && request.method === 'GET') {
-        const apiBibleTranslations = await listApiBibleTranslations({
-          apiKey: env.API_BIBLE_KEY,
+        const youVersionActiveTranslations = await listYouVersionTranslations({
+          apiKey: env.YOUVERSION_API,
           transport,
         });
         const translations = [
           { id: 'KJV', name: 'King James Version' },
-          ...apiBibleTranslations.filter((item) =>
-            apiBibleTranslationIds.includes(
-              item.id as (typeof apiBibleTranslationIds)[number],
-            ),
-          ),
+          ...youVersionActiveTranslations,
         ];
         return json({
           available: ready(env) && translations.length > 0,
           provider: 'ScriptureSmart Bible providers',
           translations,
-          unavailableTranslationIds: apiBibleTranslationIds.filter(
+          unavailableTranslationIds: youVersionTranslationIds.filter(
             (id) => !translations.some((item) => item.id === id),
           ),
         });
@@ -228,26 +223,22 @@ export function createWorker(
           const normalized = normalizeReference(reference);
           if (!normalized || !/^[A-Z0-9]{2,8}$/.test(translationId))
             throw new AIError('invalid');
-          const passage = youVersionTranslations.some(
-            (item) => item.id === translationId,
-          )
-            ? await retrieveYouVersionPassage({
-                apiKey: env.YOUVERSION_API,
-                reference: normalized,
-                translationId,
-                transport,
-              })
-            : translationId === 'KJV'
-              ? await retrieveKjvPassage({
-                  reference: normalized,
-                  transport,
-                })
-            : await retrieveApiBiblePassage({
-                  apiKey: env.API_BIBLE_KEY,
-                  reference: normalized,
-                  translationId,
-                  transport,
-                });
+          let passage;
+          if (translationId === 'KJV') {
+            passage = await retrieveKjvPassage({
+              reference: normalized,
+              transport,
+            });
+          } else if (youVersionTranslations.some((item) => item.id === translationId)) {
+            passage = await retrieveYouVersionPassage({
+              apiKey: env.YOUVERSION_API,
+              reference: normalized,
+              translationId,
+              transport,
+            });
+          } else {
+            throw new AIError('translation-unavailable');
+          }
           return json(passage);
         } catch (error) {
           const safe =
@@ -255,8 +246,9 @@ export function createWorker(
               ? error
               : error instanceof Error &&
                   [
-                    'api-bible-license-required',
-                    'api-bible-not-configured',
+                    'youversion-not-configured',
+                    'youversion-unavailable',
+                    'invalid-youversion-request',
                   ].includes(error.message)
                 ? new AIError('translation-unavailable')
                 : new AIError('scripture-unavailable');
@@ -329,8 +321,8 @@ export function createWorker(
                   (id) =>
                     id === 'KJV'
                       ? retrieveKjvPassage({ reference, transport })
-                      : retrieveApiBiblePassage({
-                          apiKey: env.API_BIBLE_KEY,
+                      : retrieveYouVersionPassage({
+                          apiKey: env.YOUVERSION_API,
                           reference,
                           translationId: id,
                           transport,
@@ -346,7 +338,7 @@ export function createWorker(
             const toSelected = (
               item: PromiseSettledResult<
                 Awaited<ReturnType<typeof retrieveKjvPassage>>
-                | Awaited<ReturnType<typeof retrieveApiBiblePassage>>
+                | Awaited<ReturnType<typeof retrieveYouVersionPassage>>
               >,
             ) =>
               item.status === 'fulfilled'
@@ -357,7 +349,8 @@ export function createWorker(
                     attribution: item.value.attribution,
                     sourceUrl: item.value.sourceUrl,
                     rights: item.value.rights,
-                    ...('fumsToken' in item.value && item.value.fumsToken
+                    ...('fumsToken' in item.value &&
+                    typeof item.value.fumsToken === 'string'
                       ? { fumsToken: item.value.fumsToken }
                       : {}),
                   }

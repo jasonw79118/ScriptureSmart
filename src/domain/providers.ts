@@ -1,25 +1,25 @@
 import type { BibleProvider, Translation, Source, User } from './models.ts';
 
 export const activeTranslationIds = ['CSB', 'NLT', 'NKJV', 'KJV'] as const;
-export const apiBibleTranslationIds = ['CSB', 'NLT', 'NKJV'] as const;
+export const youVersionTranslationIds = ['CSB', 'NLT', 'NKJV'] as const;
 
 export const translations: Translation[] = [
   {
     id: 'CSB',
     name: 'Christian Standard Bible',
-    providerIds: ['api-bible'],
+    providerIds: ['youversion'],
     requiresLicense: true,
   },
   {
     id: 'NLT',
     name: 'New Living Translation',
-    providerIds: ['api-bible'],
+    providerIds: ['youversion'],
     requiresLicense: true,
   },
   {
     id: 'NKJV',
     name: 'New King James Version',
-    providerIds: ['api-bible'],
+    providerIds: ['youversion'],
     requiresLicense: true,
   },
   {
@@ -58,7 +58,6 @@ export function supportedComparisonIds(
 }
 export const bibleProviders: BibleProvider[] = [
   { id: 'youversion', name: 'YouVersion', capabilities: ['text'] },
-  { id: 'api-bible', name: 'API.Bible', capabilities: ['text'] },
   {
     id: 'bible-brain',
     name: 'Bible Brain / Bible.is',

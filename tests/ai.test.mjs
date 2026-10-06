@@ -205,7 +205,7 @@ test('worker verifies caller with fixed Appwrite endpoint and applies caller-bas
   assert.equal(body.provider, 'scripturesmart-ai');
   assert.ok(!JSON.stringify(body).includes('valid-user-jwt'));
 });
-test('Bible status keeps the public-domain KJV available without API.Bible', async () => {
+test('Bible status keeps the public-domain KJV available without YouVersion', async () => {
   const response = await createWorker(verified).fetch(
     new Request('https://worker.example.test/api/bible/status', {
       headers: { Origin: 'https://scripture.example.test' },
@@ -221,44 +221,36 @@ test('Bible status keeps the public-domain KJV available without API.Bible', asy
   ]);
   assert.ok(!JSON.stringify(body).includes('server-secret'));
 });
-test('worker discovers licensed modern translations and adds public KJV separately', async () => {
+test('worker discovers licensed YouVersion translations and adds public KJV separately', async () => {
   const calls = [];
   const worker = createWorker(async (url, options) => {
     calls.push({ url: String(url), options });
-    const abbreviation = new URL(String(url)).searchParams.get('abbreviation');
+    assert.match(String(url), /api\.youversion\.com\/v1\/bibles\?/);
     return Response.json({
-      data:
-        abbreviation === 'CSB' || abbreviation === 'NLT'
-          ? [
-              {
-                id: `licensed-${abbreviation.toLowerCase()}`,
-                abbreviation,
-                name:
-                  abbreviation === 'CSB'
-                    ? 'Christian Standard Bible'
-                    : 'New Living Translation',
-              },
-            ]
-          : [],
+      data: [
+        { id: 5101, abbreviation: 'CSB', title: 'Christian Standard Bible' },
+        { id: 5102, abbreviation: 'NLT', title: 'New Living Translation' },
+        { id: 5103, abbreviation: 'NKJV', title: 'New King James Version' },
+      ],
     });
   });
   const response = await worker.fetch(
     new Request('https://worker.example.test/api/bible/status'),
-    env({ API_BIBLE_KEY: 'api-bible-server-secret' }),
+    env({ YOUVERSION_API: 'youversion-server-secret' }),
   );
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.deepEqual(
     body.translations.map((item) => item.id),
-    ['KJV', 'CSB', 'NLT'],
+    ['KJV', 'CSB', 'NLT', 'NKJV'],
   );
-  assert.equal(calls.length, 3);
+  assert.equal(calls.length, 1);
   assert.ok(
     calls.every(
-      (call) => call.options.headers['api-key'] === 'api-bible-server-secret',
+      (call) => call.options.headers['X-YVP-App-Key'] === 'youversion-server-secret',
     ),
   );
-  assert.ok(!JSON.stringify(body).includes('api-bible-server-secret'));
+  assert.ok(!JSON.stringify(body).includes('youversion-server-secret'));
 });
 test('worker proxies YouVersion passages only after Appwrite verification', async () => {
   const calls = [];
@@ -295,7 +287,7 @@ test('worker proxies YouVersion passages only after Appwrite verification', asyn
   assert.ok(!JSON.stringify(body).includes('server-secret'));
   assert.equal(calls.length, 2);
 });
-test('worker serves licensed CSB passages only to a verified Appwrite member', async () => {
+test('worker serves licensed YouVersion CSB passages only to a verified Appwrite member', async () => {
   const calls = [];
   const worker = createWorker(async (url, options) => {
     calls.push({ url: String(url), options });
@@ -304,18 +296,15 @@ test('worker serves licensed CSB passages only to a verified Appwrite member', a
       return Response.json({
         data: [
           {
-            id: 'licensed-csb',
+            id: 5101,
             abbreviation: 'CSB',
-            name: 'Christian Standard Bible',
+            title: 'Christian Standard Bible',
           },
         ],
       });
     return Response.json({
-      data: {
-        content: 'For God so loved the world.',
-        reference: 'John 3:16',
-        copyright: 'CSB copyright attribution.',
-      },
+      content: 'For God so loved the world.',
+      reference: 'John 3:16',
     });
   });
   const response = await worker.fetch(
@@ -328,16 +317,17 @@ test('worker serves licensed CSB passages only to a verified Appwrite member', a
         },
       },
     ),
-    env({ API_BIBLE_KEY: 'api-bible-server-secret' }),
+    env({ YOUVERSION_API: 'youversion-server-secret' }),
   );
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.equal(body.translationId, 'CSB');
-  assert.match(body.attribution, /CSB copyright attribution/);
+  assert.match(body.attribution, /YouVersion/);
+  assert.equal(body.rights.aiContextAllowed, false);
   assert.equal(calls.length, 3);
-  assert.ok(!JSON.stringify(body).includes('api-bible-server-secret'));
+  assert.ok(!JSON.stringify(body).includes('youversion-server-secret'));
 });
-test('an API.Bible edition without current authorization reports a safe unavailable message', async () => {
+test('a YouVersion edition without current authorization reports a safe unavailable message', async () => {
   const response = await createWorker(async (url) =>
     String(url).includes('/account') ? verified() : Response.json({ data: [] }),
   ).fetch(
@@ -350,12 +340,12 @@ test('an API.Bible edition without current authorization reports a safe unavaila
         },
       },
     ),
-    env({ API_BIBLE_KEY: 'private-runtime-key' }),
+    env({ YOUVERSION_API: 'private-runtime-key' }),
   );
   assert.equal(response.status, 404);
   assert.equal((await response.json()).code, 'translation-unavailable');
 });
-test('an unconfigured API.Bible key reports a translation setup error', async () => {
+test('an unconfigured YouVersion key reports a translation setup error', async () => {
   const response = await createWorker(async (url) =>
     String(url).includes('/account') ? verified() : Response.json({ data: [] }),
   ).fetch(
@@ -368,7 +358,7 @@ test('an unconfigured API.Bible key reports a translation setup error', async ()
         },
       },
     ),
-    env(),
+    env({ YOUVERSION_API: '' }),
   );
   assert.equal(response.status, 404);
   assert.equal((await response.json()).code, 'translation-unavailable');
@@ -404,20 +394,18 @@ test('Bible study AI receives open research while licensed translation text stay
         ],
       });
     if (value.includes('/bibles?')) {
-      const id = new URL(value).searchParams.get('abbreviation');
       return Response.json({
         data: [
-          { id: `discovered-${id}`, abbreviation: id, name: `${id} edition` },
+          { id: 5111, abbreviation: 'CSB', title: 'Christian Standard Bible' },
+          { id: 5112, abbreviation: 'NLT', title: 'New Living Translation' },
+          { id: 5113, abbreviation: 'NKJV', title: 'New King James Version' },
         ],
       });
     }
-    if (path.includes('/passages/') || path.includes('/chapters/'))
+    if (path.includes('/passages/'))
       return Response.json({
-        data: {
-          content: 'COPYRIGHTED SELECTED TEXT',
-          reference: 'John 1:1',
-          copyright: 'API.Bible attribution',
-        },
+        content: 'COPYRIGHTED SELECTED TEXT',
+        reference: 'John 1:1',
       });
     if (path.endsWith('/d/open-cross-ref/JHN/1.json'))
       return Response.json({
@@ -475,7 +463,7 @@ test('Bible study AI receives open research while licensed translation text stay
       },
     }),
     env({
-      API_BIBLE_KEY: 'private-runtime-key',
+      YOUVERSION_API: 'private-runtime-key',
       AI: {
         run: async (_model, args) => {
           modelInput = args.messages[1].content;

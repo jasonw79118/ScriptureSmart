@@ -1,5 +1,4 @@
 import { referenceToUsfm } from './youversion.ts';
-import { apiBibleTranslationIds } from '../../src/domain/providers.ts';
 
 export interface LicensedBiblePassage {
   reference: string;
@@ -17,7 +16,7 @@ export interface LicensedBiblePassage {
   };
 }
 
-const apiBibleIds = apiBibleTranslationIds;
+const apiBibleIds = ['CSB', 'NLT', 'NKJV'] as const;
 const apiBibleRoot = 'https://rest.api.bible/v1';
 const apiBibleSite = 'https://api.bible/';
 

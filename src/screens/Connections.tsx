@@ -166,7 +166,7 @@ export function Connections() {
           ) : null}
           {bibleConnection?.unavailableTranslationIds?.length ? (
             <p className="muted">
-              Not detected for the current API.Bible key (or temporarily
+            Not detected for the current YouVersion app key (or temporarily
               unreachable):{' '}
               {bibleConnection.unavailableTranslationIds.join(', ')}.
             </p>
@@ -175,16 +175,14 @@ export function Connections() {
             Open Bible study
           </a>
         </section>
-        {bibleProviders
-          .filter((provider) => provider.id !== 'youversion')
-          .map((provider) => {
+        {bibleProviders.map((provider) => {
             const availableIds = new Set(
               bibleConnection?.translations.map((item) => item.id) ?? [],
             );
             const configured =
               provider.id === 'public-domain'
                 ? availableIds.has('KJV')
-                : provider.id === 'api-bible'
+                : provider.id === 'youversion'
                   ? ['CSB', 'NLT', 'NKJV'].some((id) => availableIds.has(id))
                   : false;
             return (
@@ -199,23 +197,23 @@ export function Connections() {
                 </Badge>
                 <h3>{provider.name}</h3>
                 <p>
-                  {provider.id === 'api-bible'
-                    ? 'CSB, NLT, and NKJV are retrieved through API.Bible. Availability depends on the editions authorized for this Cloudflare key.'
+                  {provider.id === 'youversion'
+                    ? 'CSB, NLT, and NKJV are retrieved through YouVersion. Availability depends on the editions approved for this app key.'
                     : provider.id === 'public-domain'
-                      ? 'KJV is retrieved from the public-domain Bible source; it does not use API.Bible.'
+                      ? 'KJV is retrieved from the public-domain Bible source; it does not use YouVersion.'
                       : `${provider.capabilities.join(' · ')}. Access depends on approved APIs and applicable rights.`}
                 </p>
-                {provider.id === 'api-bible' && (
-                  <small>Cloudflare secret: API_BIBLE_KEY</small>
+                {provider.id === 'youversion' && (
+                  <small>Cloudflare secret: YOUVERSION_API</small>
                 )}
-                {provider.id === 'api-bible' ? (
+                {provider.id === 'youversion' ? (
                   <a
                     className="button secondary wide"
-                    href="https://api.bible/"
+                    href="https://developers.youversion.com/"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Open API.Bible account ↗
+                    Open YouVersion developer docs ↗
                   </a>
                 ) : (
                   <button

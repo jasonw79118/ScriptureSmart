@@ -8,6 +8,7 @@ import {
 import { retrievePassages } from '../server/ai/scripture.ts';
 import {
   referenceToUsfm,
+  listYouVersionTranslations,
   retrieveYouVersionPassage,
 } from '../server/ai/youversion.ts';
 import { validateRequest } from '../server/ai/validation.ts';
@@ -182,6 +183,58 @@ test('YouVersion passage retrieval converts references and keeps the app key ser
       translationId: 'UNKNOWN',
     }),
   );
+});
+
+test('YouVersion discovers only authorized CSB, NLT and NKJV editions', async () => {
+  const calls = [];
+  const translations = await listYouVersionTranslations({
+    apiKey: 'private-yvp-key',
+    transport: async (url, init) => {
+      calls.push({ url: String(url), init });
+      return Response.json({
+        data: [
+          { id: 77, abbreviation: 'CSB', title: 'Christian Standard Bible' },
+          { id: 78, abbreviation: 'NLT', title: 'New Living Translation' },
+          { id: 79, abbreviation: 'NKJV', title: 'New King James Version' },
+          { id: 80, abbreviation: 'ESV', title: 'English Standard Version' },
+        ],
+      });
+    },
+  });
+  assert.deepEqual(translations, [
+    { id: 'CSB', name: 'Christian Standard Bible' },
+    { id: 'NLT', name: 'New Living Translation' },
+    { id: 'NKJV', name: 'New King James Version' },
+  ]);
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].url, /language_ranges=en/);
+  assert.equal(calls[0].init.headers['X-YVP-App-Key'], 'private-yvp-key');
+  assert.ok(!JSON.stringify(translations).includes('private-yvp-key'));
+});
+
+test('YouVersion resolves CSB by the authorized app Bible collection before loading its passage', async () => {
+  const calls = [];
+  const passage = await retrieveYouVersionPassage({
+    apiKey: 'private-yvp-key',
+    reference: 'John 3:16',
+    translationId: 'CSB',
+    transport: async (url, init) => {
+      calls.push({ url: String(url), init });
+      if (String(url).includes('/bibles?'))
+        return Response.json({
+          data: [{ id: 3035, abbreviation: 'CSB', title: 'Christian Standard Bible' }],
+        });
+      return Response.json({
+        reference: 'John 3:16',
+        content: 'For God loved the world in this way.',
+      });
+    },
+  });
+  assert.match(calls[1].url, /\/bibles\/3035\/passages\/JHN\.3\.16/);
+  assert.equal(calls[1].init.headers['X-YVP-App-Key'], 'private-yvp-key');
+  assert.equal(passage.translationId, 'CSB');
+  assert.equal(passage.rights.aiContextAllowed, false);
+  assert.ok(!JSON.stringify(passage).includes('private-yvp-key'));
 });
 
 test('API.Bible resolves only licensed versions and requests plain passage text server-side', async () => {

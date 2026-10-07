@@ -214,3 +214,31 @@ test('password recovery clears Appwrite tokens and returns to member login', asy
   await expect(page.getByLabel('Email address', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
 });
+
+test('an invalid recovery token explains the issue and can leave recovery mode', async ({
+  page,
+}) => {
+  await page.route(
+    'https://nyc.cloud.appwrite.io/v1/account/recovery',
+    (route) =>
+      route.fulfill({
+        status: 401,
+        json: {
+          code: 401,
+          type: 'user_invalid_token',
+          message: 'Invalid token passed in the request.',
+        },
+      }),
+  );
+  await page.goto('/?userId=used-user&secret=used-secret#member-login');
+  await page.getByLabel('New password').fill('NewStrongPassword9!');
+  await page.getByRole('button', { name: 'Save new password' }).click();
+  await expect(page.getByRole('alert')).toContainText(
+    'expired or was already used',
+  );
+  await page.getByRole('button', { name: 'Back to member login' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Member and guest login' }),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/#member-login$/);
+});

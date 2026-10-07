@@ -17,6 +17,20 @@ export function LoginPage() {
     const secret = params.get('secret');
     return userId && secret ? { userId, secret } : null;
   });
+  function leaveRecovery() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('userId');
+    url.searchParams.delete('secret');
+    url.hash = 'member-login';
+    window.history.replaceState(
+      {},
+      '',
+      `${url.pathname}${url.search}${url.hash}`,
+    );
+    setRecovery(null);
+    setPassword('');
+    setRecovering(false);
+  }
 
   return (
     <>
@@ -69,17 +83,7 @@ export function LoginPage() {
                     password,
                   );
                   if (!completed) return;
-                  const url = new URL(window.location.href);
-                  url.searchParams.delete('userId');
-                  url.searchParams.delete('secret');
-                  url.hash = 'member-login';
-                  window.history.replaceState(
-                    {},
-                    '',
-                    `${url.pathname}${url.search}${url.hash}`,
-                  );
-                  setRecovery(null);
-                  setPassword('');
+                  leaveRecovery();
                 })();
               }}
             >
@@ -99,6 +103,13 @@ export function LoginPage() {
                 disabled={!c.authConfigured || c.busy}
               >
                 Save new password
+              </button>
+              <button
+                type="button"
+                className="text-button"
+                onClick={leaveRecovery}
+              >
+                Back to member login
               </button>
             </form>
           ) : recovering ? (

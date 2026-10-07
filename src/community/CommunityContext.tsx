@@ -324,11 +324,31 @@ function useCommunityState() {
       await account.createRecovery({ email, url: url.toString() });
     }, 'If an account exists for that email, Appwrite will send a password reset link.');
   }
-  async function completePasswordRecovery(userId: string, secret: string, password: string) {
+  async function completePasswordRecovery(
+    userId: string,
+    secret: string,
+    password: string,
+  ) {
     return run(async () => {
       if (!account) throw Error('Appwrite login is not configured.');
-      await account.updateRecovery({ userId, secret, password });
-      window.history.replaceState({}, '', `${window.location.pathname}${window.location.search}#member-login`);
+      try {
+        await account.updateRecovery({ userId, secret, password });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message.toLowerCase() : '';
+        const type =
+          typeof error === 'object' && error && 'type' in error
+            ? String(error.type).toLowerCase()
+            : '';
+        if (
+          (message.includes('token') && message.includes('invalid')) ||
+          type.includes('invalid_token')
+        )
+          throw Error(
+            'This password reset link has expired or was already used. Request a fresh link, or return to Member login if your password was already changed.',
+          );
+        throw error;
+      }
     }, 'Password updated. Sign in with your new password.');
   }
   async function signOut() {

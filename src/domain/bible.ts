@@ -33,10 +33,25 @@ export function suggestedReferences(prompt: string, passage = ''): string[] {
       'Romans 9:1-5',
       'Galatians 4:1-7',
     ];
-  const found = Array.from(
-    prompt.matchAll(new RegExp(`\\b${pattern}\\b`, 'gi')),
-    (m) => normalizeReference(m[0])!,
-  ).filter(Boolean);
+  // People often write a short-book range as "1 John 1-10" when they mean
+  // chapter 1, verses 1 through 10. A hyphen after the chapter is otherwise
+  // mistaken for punctuation and the parser returns just "1 John 1".
+  const shortBookVerseRange =
+    /\b(1\s+John|2\s+John|3\s+John|Jude|Philemon|Obadiah)\s+(\d{1,2})\s*[-–]\s*(\d{1,3})\b/gi;
+  const shorthandReferences = Array.from(prompt.matchAll(shortBookVerseRange), (m) => {
+    const book = books.find((b) => b.toLowerCase() === m[1].replace(/\s+/g, ' ').toLowerCase());
+    const chapter = Number(m[2]);
+    const lastVerse = Number(m[3]);
+    return book && chapter === 1 && lastVerse > 1
+      ? `${book} 1:1-${lastVerse}`
+      : null;
+  }).filter((reference): reference is string => reference !== null);
+  const found = shorthandReferences.length
+    ? shorthandReferences
+    : Array.from(
+        prompt.matchAll(new RegExp(`\\b${pattern}\\b`, 'gi')),
+        (m) => normalizeReference(m[0])!,
+      ).filter(Boolean);
   return [
     ...new Set(
       found.length

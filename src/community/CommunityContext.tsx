@@ -52,8 +52,6 @@ function useCommunityState() {
   const [message, setMessage] = useState('');
   const [selectedChurch, setSelectedChurch] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('');
-  const [loginToken, setLoginToken] = useState('');
-  const [phrase, setPhrase] = useState('');
   const request = useRef(0);
   const configured = !!account && !!functionId;
   const authConfigured = !!account;
@@ -299,28 +297,39 @@ function useCommunityState() {
     const result = await communityRequest('church_directory', { search });
     return result.items;
   }
-  async function signIn(email: string) {
+  async function signIn(email: string, password: string) {
     return run(async () => {
       if (!account) throw Error('Appwrite login is not configured.');
-      const token = await account.createEmailToken({
-        userId: ID.unique(),
-        email,
-        phrase: true,
-      });
-      setLoginToken(token.userId);
-      setPhrase(token.phrase ?? '');
-    }, 'Check your email for a sign-in code.');
-  }
-  async function verifyCode(secret: string) {
-    return run(async () => {
-      if (!account || !loginToken) throw Error('Request a sign-in code first.');
-      await account.createSession({ userId: loginToken, secret });
+      await account.createEmailPasswordSession({ email, password });
       const u = await account.get();
       setSession({ user: { id: u.$id, email: u.email } });
-      setLoginToken('');
-      setPhrase('');
       window.location.assign('#onboarding');
     }, 'Signed in to Appwrite.');
+  }
+  async function createAccount(name: string, email: string, password: string) {
+    return run(async () => {
+      if (!account) throw Error('Appwrite login is not configured.');
+      await account.create({ userId: ID.unique(), name, email, password });
+      await account.createEmailPasswordSession({ email, password });
+      const u = await account.get();
+      setSession({ user: { id: u.$id, email: u.email } });
+      window.location.assign('#onboarding');
+    }, 'Account created. You are signed in.');
+  }
+  async function recoverPassword(email: string) {
+    return run(async () => {
+      if (!account) throw Error('Appwrite login is not configured.');
+      const url = new URL(window.location.href);
+      url.hash = 'member-login';
+      await account.createRecovery({ email, url: url.toString() });
+    }, 'If an account exists for that email, Appwrite will send a password reset link.');
+  }
+  async function completePasswordRecovery(userId: string, secret: string, password: string) {
+    return run(async () => {
+      if (!account) throw Error('Appwrite login is not configured.');
+      await account.updateRecovery({ userId, secret, password });
+      window.history.replaceState({}, '', `${window.location.pathname}${window.location.search}#member-login`);
+    }, 'Password updated. Sign in with your new password.');
   }
   async function signOut() {
     return run(async () => {
@@ -350,8 +359,6 @@ function useCommunityState() {
     busy,
     error,
     message,
-    loginToken,
-    phrase,
     setError,
     setMessage,
     setSelectedChurch,
@@ -362,7 +369,9 @@ function useCommunityState() {
     removeDietary,
     rpc,
     signIn,
-    verifyCode,
+    createAccount,
+    recoverPassword,
+    completePasswordRecovery,
     signOut,
     reload,
     run,

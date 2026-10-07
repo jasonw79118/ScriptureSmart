@@ -119,41 +119,45 @@ test('meal suggestions, allergy flags, sign-up, absence, and reply persistence',
     page.getByText('I can bring an idea.', { exact: true }),
   ).toBeVisible();
 });
-test('Appwrite login requests and verifies an email code without fake sessions', async ({
+test('Appwrite account creation and email-password sign-in establish a real session', async ({
   page,
 }) => {
-  await page.route('**/account/tokens/email', (route) =>
-    route.fulfill({
-      status: 201,
-      contentType: 'application/json',
-      body: JSON.stringify({ userId: 'test-user', phrase: 'olive branch' }),
-    }),
-  );
-  await page.route('**/account/sessions/token', (route) =>
-    route.fulfill({
-      status: 201,
-      contentType: 'application/json',
-      body: JSON.stringify({ $id: 'test-session', userId: 'test-user' }),
-    }),
-  );
+  const requests: string[] = [];
+  let authenticated = false;
+  await page.route('https://nyc.cloud.appwrite.io/v1/account**', async (route) => {
+    const request = route.request();
+    requests.push(`${request.method()} ${new URL(request.url()).pathname}`);
+    if (request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/account')) {
+      return route.fulfill({ status: 201, json: { $id: 'test-user', email: 'test@example.test' } });
+    }
+    if (request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/account/sessions/email')) {
+      authenticated = true;
+      return route.fulfill({ status: 201, json: { $id: 'test-session', userId: 'test-user' } });
+    }
+    if (request.method() === 'GET' && new URL(request.url()).pathname.endsWith('/account')) {
+      return authenticated
+        ? route.fulfill({ status: 200, json: { $id: 'test-user', email: 'test@example.test' } })
+        : route.fulfill({ status: 401, json: { code: 401, message: 'No session' } });
+    }
+    return route.fulfill({ status: 404, json: { code: 404, message: 'Not found' } });
+  });
   await page.goto('/#member-login');
+  await page.getByRole('button', { name: 'New here? Create an account' }).click();
+  await page
+    .locator('form')
+    .filter({ has: page.getByRole('button', { name: 'Create account' }) })
+    .getByLabel('Your name', { exact: true })
+    .fill('Test Member');
   await page
     .getByLabel('Email address', { exact: true })
     .fill('test@example.test');
-  await page.getByRole('button', { name: 'Email me a sign-in code' }).click();
-  await expect(page.getByText('olive branch', { exact: true })).toBeVisible();
-  await page.route('https://nyc.cloud.appwrite.io/v1/account', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ $id: 'test-user', email: 'test@example.test' }),
-    }),
-  );
-  await page.getByLabel('Email sign-in code').fill('123456');
-  await page.getByRole('button', { name: 'Verify and sign in' }).click();
+  await page.getByLabel('Password', { exact: true }).fill('CorrectHorse9!');
+  await page.getByRole('button', { name: 'Create account' }).click();
   await expect(
     page.getByRole('heading', { name: 'First, find your church.' }),
   ).toBeVisible();
+  expect(requests).toContain('POST /v1/account');
+  expect(requests).toContain('POST /v1/account/sessions/email');
   await page.goto('/#member-login');
   await expect(page.getByText('Signed in as test@example.test')).toBeVisible();
   await expect(

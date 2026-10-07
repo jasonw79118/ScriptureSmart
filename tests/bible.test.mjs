@@ -29,6 +29,10 @@ test('adoption questions select the curated Pauline passages, other topics use e
     suggestedReferences('Compare John 1:1-5 with Genesis 1:1-3'),
     ['John 1:1-5', 'Genesis 1:1-3'],
   );
+  assert.deepEqual(
+    suggestedReferences('tell me about 1 john 1-10?'),
+    ['1 John 1:1-10'],
+  );
   assert.equal(normalizeReference('https://evil.test'), null);
   assert.equal(normalizeReference('Romans 8:30-1'), null);
   assert.equal(normalizeReference('Romans 0'), null);

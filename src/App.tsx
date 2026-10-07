@@ -235,15 +235,23 @@ function App() {
   );
   const [availableTranslationIds, setAvailableTranslationIds] = useState<
     string[]
-  >([defaultTranslationId]);
+  >(['KJV', 'WEB']);
   useEffect(() => {
     const controller = new AbortController();
     void getBibleProviderStatus(controller.signal)
       .then((status) => {
+        // Public-domain editions are always available choices; the provider
+        // status endpoint is only needed to discover licensed editions.
         setAvailableTranslationIds([
-          ...new Set(
-            status.available ? status.translations.map((item) => item.id) : [],
-          ),
+          ...new Set([
+            'KJV',
+            'WEB',
+            ...(status.available
+              ? status.translations
+                  .map((item) => item.id)
+                  .filter((id) => id !== 'KJV' && id !== 'WEB')
+              : []),
+          ]),
         ]);
       })
       .catch(() => undefined);

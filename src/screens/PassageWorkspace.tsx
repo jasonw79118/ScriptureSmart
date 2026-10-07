@@ -154,9 +154,20 @@ export function PassageWorkspace({
         <div role="alert" className="scripture-error">
           <strong>Passage unavailable</strong>
           <p>{passageErrors[key]}</p>
-          <button className="text-button" onClick={connect}>
-            View Bible connections
-          </button>
+          {id === 'KJV' || id === 'WEB' ? (
+            <button
+              className="text-button"
+              onClick={() =>
+                setPassageErrors((current) => ({ ...current, [key]: '' }))
+              }
+            >
+              Try loading again
+            </button>
+          ) : (
+            <button className="text-button" onClick={connect}>
+              View Bible connections
+            </button>
+          )}
         </div>
       );
     if (!result)

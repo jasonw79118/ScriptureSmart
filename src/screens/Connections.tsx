@@ -154,7 +154,7 @@ export function Connections() {
               ? 'Checking Bible providers...'
               : bibleStatus === 'ready'
                 ? 'At least one Bible text provider is ready.'
-                : 'No Bible text providers are connected yet.'}
+                : 'The Bible provider status could not be checked. KJV and WEB are built-in public-domain choices and do not require a member connection.'}
           </strong>
           {bibleConnection?.translations.length ? (
             <p className="muted">
@@ -188,7 +188,7 @@ export function Connections() {
             );
             const configured =
               provider.id === 'public-domain'
-                ? availableIds.has('KJV')
+                ? availableIds.has('KJV') || availableIds.has('WEB')
                 : provider.id === 'youversion'
                   ? ['CSB', 'NLT', 'NKJV'].some((id) => availableIds.has(id))
                   : false;
@@ -207,7 +207,7 @@ export function Connections() {
                   {provider.id === 'youversion'
                     ? 'CSB, NLT, and NKJV are retrieved through YouVersion. Availability depends on the editions approved for this app key.'
                     : provider.id === 'public-domain'
-                      ? 'KJV is retrieved from the public-domain Bible source; it does not use YouVersion.'
+                      ? 'KJV and WEB are built-in public-domain editions. Members do not need to connect an account or provide an API key.'
                       : `${provider.capabilities.join(' · ')}. Access depends on approved APIs and applicable rights.`}
                 </p>
                 {provider.id === 'youversion' && (

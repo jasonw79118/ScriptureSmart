@@ -8,7 +8,7 @@ The AI Worker is deployed at https://scripturesmart-ai.jasonw79118.workers.dev. 
 
 **Study deeply. Teach faithfully. Grow together.**
 
-A responsive Bible research and collaboration workspace for individuals, pastors, study leaders, and churches. Appwrite authentication is configured; shared community data requires deployment of the supplied function. ScriptureSmart AI and Bible text retrieval use the existing Cloudflare Worker. Confirm the YouVersion app key and authorized editions in Cloudflare before using licensed translations.
+A responsive Bible research and collaboration workspace for individuals, pastors, study leaders, and churches. Appwrite authentication is configured; shared community data requires deployment of the supplied function. ScriptureSmart AI and Bible text retrieval use the existing Cloudflare Worker. Confirm the API.Bible app key and licensed editions in Cloudflare before using CSB, NLT, or NKJV.
 
 ## Run locally
 
@@ -49,13 +49,13 @@ Sample drafts and group content are labeled. Retrieved Bible text, word annotati
 
 ## Bible Research Pipeline
 
-YouVersion discovers the English editions authorized for the Cloudflare app key through its Bible collection endpoint; ScriptureSmart uses it for CSB, NLT, and NKJV. If an edition is not authorized, it is omitted from the available list and its passage request gives a safe access message. Public-domain KJV text comes from bible-api.com and does not use YouVersion. Licensed passage text is retrieved server-side for display and is not sent to Workers AI; public-domain KJV text may be included in study context.
+API.Bible discovers the CSB, NLT, and NKJV editions licensed to the ScriptureSmart app key. An edition is listed only when the key can access it. Public-domain KJV and WEB text use a separate source. Licensed passage text is retrieved server-side for display and is not sent to Workers AI; public-domain text may be included in study context.
 
 The Free Use Bible API supplies a public-domain BSB comparison passage, OpenBible.info cross references, available commentary chapters, Theographic people/place/event data, and BSB word annotations where a chapter has them. Strong's IDs, lemma, morphology, and word anchors appear only when the endpoint supplies them. The current source does not provide a guaranteed original-script form, transliteration, or English gloss for every annotated word, so ScriptureSmart leaves those fields unavailable. Each provider can fail independently while other returned research remains available.
 
 Bible research is gathered server-side and attached to passage-study answers. Retrieved resources remain separate from ScriptureSmart AI synthesis. Users can compare the selected edition with open BSB wording in the response. Commentary, reference lists, word annotations, and selected translation text are shown as retrieved source material, not AI-authored claims.
 
-The YouVersion app key must be stored as the Cloudflare Worker runtime secret `YOUVERSION_API`. A GitHub repository secret is available only to workflows that explicitly map it; the GitHub Pages workflow does not deploy the Worker or forward secrets. See [Worker setup](server/ai/README.md#operator-setup).
+The API.Bible app key must be stored as the Cloudflare Worker runtime secret `API_BIBLE_API_KEY`. See [Worker setup](server/ai/README.md#operator-setup).
 
 ## Architecture
 
@@ -105,7 +105,7 @@ Credentials must be accepted only by an authenticated server over TLS, encrypted
 Planned integrations (availability and licensing must be verified before implementation):
 
 - AI: OpenAI, Anthropic Claude, xAI Grok; later Gemini, Azure OpenAI, Bedrock, Ollama/local models.
-- Scripture: YouVersion for CSB, NLT, and NKJV; public-domain KJV source; Bible Brain research sources. Translation availability is not assumed.
+- Scripture: API.Bible for CSB, NLT, and NKJV; public-domain KJV and WEB; Bible Brain research sources. Licensed translation availability depends on the API.Bible app key.
 - Official OAuth/OpenID only where supported; YouVersion highlights only if explicitly supported and user-authorized.
 - Church content: YouTube, Google Drive, Dropbox, Planning Center, Church Center, podcast RSS.
 - Document/media parsing: DOCX, PDF, audio, video, and YouTube imports.

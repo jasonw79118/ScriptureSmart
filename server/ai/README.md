@@ -34,9 +34,9 @@ No deployment, external AI connection, or unauthenticated development bypass is 
 
 ### Bible provider runtime secret
 
-The current GitHub Actions workflow deploys only GitHub Pages. A repository secret is not automatically available to this Cloudflare Worker, and this workflow does not transfer it. The Worker expects the existing Cloudflare secret name `YOUVERSION_API`.
+The current GitHub Actions workflow deploys only GitHub Pages. A repository secret is not automatically available to this Cloudflare Worker, and this workflow does not transfer it. Store the API.Bible key as the Cloudflare Worker secret `API_BIBLE_API_KEY`. The Worker temporarily accepts the old `YOUVERSION_API` secret name as a fallback so an existing key can be checked during the migration.
 
-To configure it without placing the value in source or a command argument, open the Cloudflare dashboard, select the `scripturesmart-ai` Worker, then go to **Settings → Variables and Secrets → Add → Secret**. Enter `YOUVERSION_API` as the name and paste the app key into the masked value field, then save and redeploy the Worker. You can also run `npx wrangler secret put YOUVERSION_API` in an authenticated terminal; Wrangler prompts for the value. Never put it in `VITE_*`, `.env.example`, a committed file, or a build log. No GitHub workflow currently deploys or updates this Worker.
+To configure it without placing the value in source or a command argument, open the Cloudflare dashboard, select the `scripturesmart-ai` Worker, then go to **Settings → Variables and Secrets → Add → Secret**. Enter `API_BIBLE_API_KEY` as the name and paste the app key into the masked value field, then save and redeploy the Worker. You can also run `npx wrangler secret put API_BIBLE_API_KEY` in an authenticated terminal; Wrangler prompts for the value. Never put it in `VITE_*`, `.env.example`, a committed file, or a build log. No GitHub workflow currently deploys or updates this Worker.
 
 ## Local development
 
@@ -98,13 +98,13 @@ The Worker has no persistence for prompts or responses and does not log JWTs, co
 
 ## Bible retrieval
 
-Study requests may include a `bible.references` list of one to six validated references. After authentication and rate limiting, `scripture.ts` retrieves WEB text from bible-api.com, validates translation/book/chapter/verse identity, and passes it separately as trusted retrieval provenance. The active translation choices are KJV, WEB, CSB, NLT, and NKJV. KJV and WEB are retrieved separately as public-domain editions; YouVersion supplies the licensed editions. Licensed selected text is returned for display but excluded from the Workers AI prompt. Public-domain selected text may be included in model context.
+Study requests may include a `bible.references` list of one to six validated references. After authentication and rate limiting, `scripture.ts` retrieves WEB text from bible-api.com, validates translation/book/chapter/verse identity, and passes it separately as trusted retrieval provenance. The active translation choices are KJV, WEB, CSB, NLT, and NKJV. KJV and WEB are retrieved as public-domain editions; API.Bible supplies the licensed editions. Licensed selected text is returned for display but excluded from the Workers AI prompt. Public-domain selected text may be included in model context.
 
 The open research adapter queries Free Use Bible API chapter text, OpenBible.info cross references, commentary indexes/chapters, Theographic chapter entities, and BSB word annotations where available. It uses bounded isolate-local caching for public research data only, per-source timeouts, and independent failure handling. Returned original-language annotations can include Strong's IDs, lemma, morphology, and English-word anchors. The source does not guarantee original-script forms, transliterations, glosses, or annotations in every chapter; missing fields stay unavailable. Commentary excerpts are source data, separate from generated analysis.
 
-The active Bible selectors are KJV, WEB, CSB, NLT, and NKJV. YouVersion access for CSB, NLT, and NKJV is discovered dynamically from the English Bible collection; only versions returned for the app key are listed. Bible IDs and metadata are not cached. Licensed passage text remains request-scoped, is display-only, and is excluded from AI context. KJV and WEB are public-domain and use separate retrieval branches.
+The active Bible selectors are KJV, WEB, CSB, NLT, and NKJV. API.Bible access for CSB, NLT, and NKJV is checked dynamically against the key’s licensed edition list; only versions returned for the app key are listed. Bible IDs and metadata are not cached. Licensed passage text remains request-scoped, is display-only, and is excluded from AI context. KJV and WEB are public-domain and use separate retrieval branches.
 
-The selected editions must be licensed to the YouVersion app for use in this website. Follow YouVersion's attribution and display requirements for each returned version.
+The selected editions must be licensed to the ScriptureSmart API.Bible app for use in this website. Follow API.Bible's attribution and display requirements for each returned version.
 
 Operator live check: `node scripts/check-live-bible-study.mjs` retrieves the four adoption passages and runs the example question through the model; it incurs model usage and is excluded from automated tests.
 

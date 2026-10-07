@@ -166,15 +166,15 @@ export function Connections() {
           ) : null}
           {bibleConnection?.unavailableTranslationIds?.length ? (
             <p className="muted">
-              {bibleConnection.youVersionStatus === 'not-configured'
-                ? 'Cloudflare is missing the YOUVERSION_API secret.'
-                : bibleConnection.youVersionStatus === 'unauthorized'
-                  ? 'YouVersion rejected the app key. Check the YOUVERSION_API secret in Cloudflare.'
-                : bibleConnection.youVersionStatus === 'not-approved'
-                    ? 'YouVersion is connected, but the app has not been approved for these editions yet. Complete the access application for your website.'
-                    : bibleConnection.youVersionStatus === 'unavailable'
-                      ? 'The YouVersion Bible service could not be reached. Retry the connection check.'
-                      : 'Not detected for the current YouVersion app key:'}{' '}
+              {bibleConnection.apiBibleStatus === 'not-configured'
+                ? 'Cloudflare is missing the API_BIBLE_API_KEY secret. The old YOUVERSION_API secret name is also checked for compatibility.'
+                : bibleConnection.apiBibleStatus === 'unauthorized'
+                  ? 'API.Bible rejected the app key. Check the API_BIBLE_API_KEY secret in Cloudflare.'
+                  : bibleConnection.apiBibleStatus === 'not-approved'
+                    ? 'API.Bible is connected, but CSB, NLT, and NKJV were not returned for this key. Check the key’s edition access and license.'
+                    : bibleConnection.apiBibleStatus === 'unavailable'
+                      ? 'The API.Bible service could not be reached. Retry the connection check.'
+                      : 'Not detected for the current API.Bible key:'}{' '}
               {bibleConnection.unavailableTranslationIds.join(', ')}.
             </p>
           ) : null}
@@ -189,7 +189,7 @@ export function Connections() {
             const configured =
               provider.id === 'public-domain'
                 ? availableIds.has('KJV') || availableIds.has('WEB')
-                : provider.id === 'youversion'
+                : provider.id === 'api-bible'
                   ? ['CSB', 'NLT', 'NKJV'].some((id) => availableIds.has(id))
                   : false;
             return (
@@ -204,23 +204,23 @@ export function Connections() {
                 </Badge>
                 <h3>{provider.name}</h3>
                 <p>
-                  {provider.id === 'youversion'
-                    ? 'CSB, NLT, and NKJV are retrieved through YouVersion. Availability depends on the editions approved for this app key.'
+                  {provider.id === 'api-bible'
+                    ? 'CSB, NLT, and NKJV are retrieved through API.Bible. Availability depends on the editions licensed to the ScriptureSmart app key.'
                     : provider.id === 'public-domain'
                       ? 'KJV and WEB are built-in public-domain editions. Members do not need to connect an account or provide an API key.'
                       : `${provider.capabilities.join(' · ')}. Access depends on approved APIs and applicable rights.`}
                 </p>
-                {provider.id === 'youversion' && (
-                  <small>Cloudflare secret: YOUVERSION_API</small>
+                {provider.id === 'api-bible' && (
+                  <small>Cloudflare secret: API_BIBLE_API_KEY</small>
                 )}
-                {provider.id === 'youversion' ? (
+                {provider.id === 'api-bible' ? (
                   <a
                     className="button secondary wide"
-                    href="https://developers.youversion.com/"
+                    href="https://scripture.api.bible/"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Open YouVersion developer docs ↗
+                    Open API.Bible developer portal ↗
                   </a>
                 ) : (
                   <button

@@ -1,15 +1,11 @@
 import { retrievePassages, retrieveWebPassage } from './scripture.ts';
-import {
-  listYouVersionTranslations,
-  retrieveYouVersionPassage,
-  youVersionTranslations,
-} from './youversion.ts';
+import { listApiBibleTranslations, retrieveApiBiblePassage } from './translationProviders.ts';
 import { AIError, isRecord, type AIErrorCode } from '../../src/domain/ai.ts';
 import { normalizeReference } from '../../src/domain/bible.ts';
 import { testamentForReference } from '../../src/domain/bible.ts';
 import {
   activeTranslationIds,
-  youVersionTranslationIds,
+  apiBibleTranslationIds,
 } from '../../src/domain/providers.ts';
 import { readRequest } from './validation.ts';
 import { retrieveOpenBibleResearch } from './freeUseBible.ts';
@@ -30,6 +26,8 @@ export interface Env extends ModelConfig {
   APPWRITE_ENDPOINT: string;
   APPWRITE_PROJECT_ID: string;
   ALLOWED_ORIGINS: string;
+  API_BIBLE_API_KEY?: string;
+  /** Backward-compatible name used by the previously wired provider. */
   YOUVERSION_API?: string;
 }
 const statusCodes: Record<AIErrorCode, number> = {
@@ -191,45 +189,40 @@ export function createWorker(
       if (path === '/api/ai/status' && request.method === 'GET')
         return json({ available: ready(env), provider: 'scripturesmart-ai' });
       if (path === '/api/bible/status' && request.method === 'GET') {
-        let youVersionActiveTranslations: Awaited<
-          ReturnType<typeof listYouVersionTranslations>
+        const apiBibleKey = env.API_BIBLE_API_KEY?.trim() || env.YOUVERSION_API?.trim();
+        let apiBibleActiveTranslations: Awaited<
+          ReturnType<typeof listApiBibleTranslations>
         > = [];
-        let youVersionStatus:
+        let apiBibleStatus:
           | 'connected'
           | 'not-configured'
           | 'unauthorized'
           | 'not-approved'
-          | 'unavailable' = env.YOUVERSION_API?.trim()
+          | 'unavailable' = apiBibleKey
           ? 'connected'
           : 'not-configured';
-        if (env.YOUVERSION_API?.trim()) {
+        if (apiBibleKey) {
           try {
-            youVersionActiveTranslations = await listYouVersionTranslations({
-              apiKey: env.YOUVERSION_API,
+            apiBibleActiveTranslations = await listApiBibleTranslations({
+              apiKey: apiBibleKey,
               transport,
             });
-            if (!youVersionActiveTranslations.length)
-              youVersionStatus = 'not-approved';
-          } catch (error) {
-            youVersionStatus =
-              error instanceof Error && error.message === 'youversion-unauthorized'
-                ? 'unauthorized'
-                : error instanceof Error && error.message === 'youversion-forbidden'
-                  ? 'not-approved'
-                  : 'unavailable';
+            if (!apiBibleActiveTranslations.length) apiBibleStatus = 'not-approved';
+          } catch {
+            apiBibleStatus = 'unavailable';
           }
         }
         const translations = [
           { id: 'KJV', name: 'King James Version' },
           { id: 'WEB', name: 'World English Bible' },
-          ...youVersionActiveTranslations,
+          ...apiBibleActiveTranslations,
         ];
         return json({
           available: ready(env) && translations.length > 0,
           provider: 'ScriptureSmart Bible providers',
           translations,
-          youVersionStatus,
-          unavailableTranslationIds: youVersionTranslationIds.filter(
+          apiBibleStatus,
+          unavailableTranslationIds: apiBibleTranslationIds.filter(
             (id) => !translations.some((item) => item.id === id),
           ),
         });
@@ -260,9 +253,9 @@ export function createWorker(
               reference: normalized,
               transport,
             });
-          } else if (youVersionTranslations.some((item) => item.id === translationId)) {
-            passage = await retrieveYouVersionPassage({
-              apiKey: env.YOUVERSION_API,
+          } else if (apiBibleTranslationIds.some((item) => item === translationId)) {
+            passage = await retrieveApiBiblePassage({
+              apiKey: env.API_BIBLE_API_KEY?.trim() || env.YOUVERSION_API,
               reference: normalized,
               translationId,
               transport,
@@ -277,11 +270,10 @@ export function createWorker(
               ? error
               : error instanceof Error &&
                   [
-                    'youversion-not-configured',
-                    'youversion-unavailable',
-                    'youversion-unauthorized',
-                    'youversion-forbidden',
-                    'invalid-youversion-request',
+                    'api-bible-not-configured',
+                    'api-bible-unavailable',
+                    'api-bible-license-required',
+                    'invalid-api-bible-request',
                   ].includes(error.message)
                 ? new AIError('translation-unavailable')
                 : new AIError('scripture-unavailable');
@@ -356,12 +348,14 @@ export function createWorker(
                       ? retrieveKjvPassage({ reference, transport })
                       : id === 'WEB'
                         ? retrieveWebPassage({ reference, transport })
-                        : retrieveYouVersionPassage({
-                          apiKey: env.YOUVERSION_API,
+                        : apiBibleTranslationIds.includes(id as (typeof apiBibleTranslationIds)[number])
+                        ? retrieveApiBiblePassage({
+                          apiKey: env.API_BIBLE_API_KEY?.trim() || env.YOUVERSION_API,
                           reference,
                           translationId: id,
                           transport,
-                        }),
+                        })
+                        : Promise.reject(new Error('translation-unavailable')),
                 ),
               ),
               Promise.allSettled([
@@ -374,7 +368,7 @@ export function createWorker(
               item: PromiseSettledResult<
                 Awaited<ReturnType<typeof retrieveKjvPassage>>
                   | Awaited<ReturnType<typeof retrieveWebPassage>>
-                | Awaited<ReturnType<typeof retrieveYouVersionPassage>>
+                | Awaited<ReturnType<typeof retrieveApiBiblePassage>>
               >,
             ) =>
               item.status === 'fulfilled'

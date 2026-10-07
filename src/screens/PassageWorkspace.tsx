@@ -180,7 +180,7 @@ export function PassageWorkspace({
         <div className="scripture-attribution">
           <span>{result.attribution}</span>
           <a href={result.sourceUrl} target="_blank" rel="noopener noreferrer">
-            {result.translationId === 'KJV' || result.translationId === 'WEB' ? 'Open public-domain source ↗' : 'Open YouVersion ↗'}
+            {result.translationId === 'KJV' || result.translationId === 'WEB' ? 'Open public-domain source ↗' : 'Open API.Bible ↗'}
           </a>
         </div>
         {result.rights && (

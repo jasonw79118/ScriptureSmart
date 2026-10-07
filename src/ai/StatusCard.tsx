@@ -50,7 +50,7 @@ export function AIStatusCard() {
           The built-in assistant uses a configured server model. Service
           availability is a configuration check; individual requests may still
           fail or reach a limit. Model information appears with each response.
-          Passage study can retrieve selected YouVersion Bible passages.
+          Passage study can retrieve selected API.Bible editions.
           Commentary and original-language sources are not connected.
         </p>
       </details>

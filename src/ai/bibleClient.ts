@@ -7,7 +7,7 @@ export interface BibleProviderStatus {
   provider: string;
   translations: { id: string; name: string }[];
   unavailableTranslationIds?: string[];
-  youVersionStatus?:
+  apiBibleStatus?:
     | 'connected'
     | 'not-configured'
     | 'unauthorized'
@@ -140,13 +140,13 @@ export async function getBibleProviderStatus(
           (id): id is string => typeof id === 'string',
         )
       : [],
-    ...(typeof body.youVersionStatus === 'string' &&
+    ...(typeof body.apiBibleStatus === 'string' &&
     ['connected', 'not-configured', 'unauthorized', 'not-approved', 'unavailable'].includes(
-      body.youVersionStatus,
+      body.apiBibleStatus,
     )
       ? {
-          youVersionStatus: body.youVersionStatus as NonNullable<
-            BibleProviderStatus['youVersionStatus']
+          apiBibleStatus: body.apiBibleStatus as NonNullable<
+            BibleProviderStatus['apiBibleStatus']
           >,
         }
       : {}),

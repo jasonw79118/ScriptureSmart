@@ -124,25 +124,54 @@ test('Appwrite account creation and email-password sign-in establish a real sess
 }) => {
   const requests: string[] = [];
   let authenticated = false;
-  await page.route('https://nyc.cloud.appwrite.io/v1/account**', async (route) => {
-    const request = route.request();
-    requests.push(`${request.method()} ${new URL(request.url()).pathname}`);
-    if (request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/account')) {
-      return route.fulfill({ status: 201, json: { $id: 'test-user', email: 'test@example.test' } });
-    }
-    if (request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/account/sessions/email')) {
-      authenticated = true;
-      return route.fulfill({ status: 201, json: { $id: 'test-session', userId: 'test-user' } });
-    }
-    if (request.method() === 'GET' && new URL(request.url()).pathname.endsWith('/account')) {
-      return authenticated
-        ? route.fulfill({ status: 200, json: { $id: 'test-user', email: 'test@example.test' } })
-        : route.fulfill({ status: 401, json: { code: 401, message: 'No session' } });
-    }
-    return route.fulfill({ status: 404, json: { code: 404, message: 'Not found' } });
-  });
+  await page.route(
+    'https://nyc.cloud.appwrite.io/v1/account**',
+    async (route) => {
+      const request = route.request();
+      requests.push(`${request.method()} ${new URL(request.url()).pathname}`);
+      if (
+        request.method() === 'POST' &&
+        new URL(request.url()).pathname.endsWith('/account')
+      ) {
+        return route.fulfill({
+          status: 201,
+          json: { $id: 'test-user', email: 'test@example.test' },
+        });
+      }
+      if (
+        request.method() === 'POST' &&
+        new URL(request.url()).pathname.endsWith('/account/sessions/email')
+      ) {
+        authenticated = true;
+        return route.fulfill({
+          status: 201,
+          json: { $id: 'test-session', userId: 'test-user' },
+        });
+      }
+      if (
+        request.method() === 'GET' &&
+        new URL(request.url()).pathname.endsWith('/account')
+      ) {
+        return authenticated
+          ? route.fulfill({
+              status: 200,
+              json: { $id: 'test-user', email: 'test@example.test' },
+            })
+          : route.fulfill({
+              status: 401,
+              json: { code: 401, message: 'No session' },
+            });
+      }
+      return route.fulfill({
+        status: 404,
+        json: { code: 404, message: 'Not found' },
+      });
+    },
+  );
   await page.goto('/#member-login');
-  await page.getByRole('button', { name: 'New here? Create an account' }).click();
+  await page
+    .getByRole('button', { name: 'New here? Create an account' })
+    .click();
   await page
     .locator('form')
     .filter({ has: page.getByRole('button', { name: 'Create account' }) })
@@ -163,4 +192,25 @@ test('Appwrite account creation and email-password sign-in establish a real sess
   await expect(
     page.getByRole('button', { name: 'Join group', exact: true }),
   ).toBeDisabled();
+});
+
+test('password recovery clears Appwrite tokens and returns to member login', async ({
+  page,
+}) => {
+  await page.route(
+    'https://nyc.cloud.appwrite.io/v1/account/recovery',
+    (route) => route.fulfill({ status: 200, json: {} }),
+  );
+  await page.goto('/?userId=recovery-user&secret=recovery-secret#member-login');
+  await expect(
+    page.getByRole('heading', { name: 'Set a new password' }),
+  ).toBeVisible();
+  await page.getByLabel('New password').fill('NewStrongPassword9!');
+  await page.getByRole('button', { name: 'Save new password' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Member and guest login' }),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/#member-login$/);
+  await expect(page.getByLabel('Email address', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
 });

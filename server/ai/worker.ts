@@ -1,4 +1,4 @@
-import { retrievePassages } from './scripture.ts';
+import { retrievePassages, retrieveWebPassage } from './scripture.ts';
 import {
   listYouVersionTranslations,
   retrieveYouVersionPassage,
@@ -221,6 +221,7 @@ export function createWorker(
         }
         const translations = [
           { id: 'KJV', name: 'King James Version' },
+          { id: 'WEB', name: 'World English Bible' },
           ...youVersionActiveTranslations,
         ];
         return json({
@@ -251,6 +252,11 @@ export function createWorker(
           let passage;
           if (translationId === 'KJV') {
             passage = await retrieveKjvPassage({
+              reference: normalized,
+              transport,
+            });
+          } else if (translationId === 'WEB') {
+            passage = await retrieveWebPassage({
               reference: normalized,
               transport,
             });
@@ -348,7 +354,9 @@ export function createWorker(
                   (id) =>
                     id === 'KJV'
                       ? retrieveKjvPassage({ reference, transport })
-                      : retrieveYouVersionPassage({
+                      : id === 'WEB'
+                        ? retrieveWebPassage({ reference, transport })
+                        : retrieveYouVersionPassage({
                           apiKey: env.YOUVERSION_API,
                           reference,
                           translationId: id,
@@ -365,6 +373,7 @@ export function createWorker(
             const toSelected = (
               item: PromiseSettledResult<
                 Awaited<ReturnType<typeof retrieveKjvPassage>>
+                  | Awaited<ReturnType<typeof retrieveWebPassage>>
                 | Awaited<ReturnType<typeof retrieveYouVersionPassage>>
               >,
             ) =>

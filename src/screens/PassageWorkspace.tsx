@@ -169,7 +169,7 @@ export function PassageWorkspace({
         <div className="scripture-attribution">
           <span>{result.attribution}</span>
           <a href={result.sourceUrl} target="_blank" rel="noopener noreferrer">
-            {result.translationId === 'KJV' ? 'Open public KJV source ↗' : 'Open YouVersion ↗'}
+            {result.translationId === 'KJV' || result.translationId === 'WEB' ? 'Open public-domain source ↗' : 'Open YouVersion ↗'}
           </a>
         </div>
         {result.rights && (
@@ -353,7 +353,7 @@ export function PassageWorkspace({
             <div className="scripture-title">
               <span className="eyebrow">SCRIPTURE</span>
               <h2>{passage.split(':')[0]}</h2>
-              <p>Read and study the passage in context</p>
+              <p>Start with the King James Version, then switch to the World English Bible for a modern-English reading.</p>
             </div>
             <div
               className="translation-choices"

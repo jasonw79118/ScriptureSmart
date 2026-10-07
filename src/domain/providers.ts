@@ -1,6 +1,6 @@
 import type { BibleProvider, Translation, Source, User } from './models.ts';
 
-export const activeTranslationIds = ['CSB', 'NLT', 'NKJV', 'KJV'] as const;
+export const activeTranslationIds = ['CSB', 'NLT', 'NKJV', 'KJV', 'WEB'] as const;
 export const youVersionTranslationIds = ['CSB', 'NLT', 'NKJV'] as const;
 
 export const translations: Translation[] = [
@@ -28,9 +28,15 @@ export const translations: Translation[] = [
     providerIds: ['public-domain'],
     requiresLicense: false,
   },
+  {
+    id: 'WEB',
+    name: 'World English Bible',
+    providerIds: ['public-domain'],
+    requiresLicense: false,
+  },
 ];
-export const defaultTranslationId = 'CSB';
-export const defaultComparisonTranslationId = 'NLT';
+export const defaultTranslationId = 'KJV';
+export const defaultComparisonTranslationId = 'WEB';
 
 export function supportedTranslationId(
   id: string,

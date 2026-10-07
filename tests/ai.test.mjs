@@ -218,6 +218,7 @@ test('Bible status keeps the public-domain KJV available without YouVersion', as
   assert.equal(body.provider, 'ScriptureSmart Bible providers');
   assert.deepEqual(body.translations, [
     { id: 'KJV', name: 'King James Version' },
+    { id: 'WEB', name: 'World English Bible' },
   ]);
   assert.ok(!JSON.stringify(body).includes('server-secret'));
 });
@@ -242,7 +243,7 @@ test('worker discovers licensed YouVersion translations and adds public KJV sepa
   const body = await response.json();
   assert.deepEqual(
     body.translations.map((item) => item.id),
-    ['KJV', 'CSB', 'NLT', 'NKJV'],
+    ['KJV', 'WEB', 'CSB', 'NLT', 'NKJV'],
   );
   assert.equal(calls.length, 1);
   assert.ok(
@@ -339,6 +340,27 @@ test('worker serves licensed YouVersion CSB passages only to a verified Appwrite
   assert.equal(body.rights.aiContextAllowed, false);
   assert.equal(calls.length, 3);
   assert.ok(!JSON.stringify(body).includes('youversion-server-secret'));
+});
+test('worker serves WEB as a selectable public-domain passage to verified members', async () => {
+  const response = await createWorker(async (url) => {
+    if (String(url).includes('/account')) return verified();
+    assert.match(String(url), /bible-api\.com\/John%203%3A16\?translation=web/);
+    return Response.json({
+      translation_id: 'web',
+      verses: [{ book_name: 'John', chapter: 3, verse: 16, text: 'Modern English text.' }],
+    });
+  }).fetch(
+    new Request('https://worker.example.test/api/bible/passage?reference=John%203:16&translationId=WEB', {
+      headers: { Origin: 'https://scripture.example.test', Authorization: 'Bearer valid-user-jwt' },
+    }),
+    env(),
+  );
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.translationId, 'WEB');
+  assert.match(body.attribution, /World English Bible/);
+  assert.equal(body.rights.aiContextAllowed, true);
+  assert.match(body.text, /Modern English text/);
 });
 test('a YouVersion edition without current authorization reports a safe unavailable message', async () => {
   const response = await createWorker(async (url) =>

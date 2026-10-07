@@ -227,7 +227,7 @@ export function parseAIResponse(
         !['old', 'new'].includes(String(value.bibleResearch.testament)) ||
         (value.bibleResearch.selectedTranslation !== undefined &&
           (!isRecord(value.bibleResearch.selectedTranslation) ||
-            !['CSB', 'NLT', 'NKJV', 'KJV'].includes(
+            !['CSB', 'NLT', 'NKJV', 'KJV', 'WEB'].includes(
               String(value.bibleResearch.selectedTranslation.id),
             ) ||
             typeof value.bibleResearch.selectedTranslation.text !== 'string' ||
@@ -241,7 +241,7 @@ export function parseAIResponse(
         value.bibleResearch.comparisonTranslations.some(
           (item) =>
             !isRecord(item) ||
-            !['CSB', 'NLT', 'NKJV', 'KJV'].includes(String(item.id)) ||
+            !['CSB', 'NLT', 'NKJV', 'KJV', 'WEB'].includes(String(item.id)) ||
             typeof item.text !== 'string' ||
             !validTranslationRights(item.rights),
         ) ||

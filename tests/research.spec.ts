@@ -27,6 +27,7 @@ test('study chat gathers selected translation and sourced open research', async 
           { id: 'NLT', name: 'New Living Translation' },
           { id: 'NKJV', name: 'New King James Version' },
           { id: 'KJV', name: 'King James Version' },
+          { id: 'WEB', name: 'World English Bible' },
         ],
       },
     }),
@@ -127,7 +128,7 @@ test('study chat gathers selected translation and sourced open research', async 
   await expect(page.getByText('Paul · people')).toBeVisible();
   expect(requestBody?.context).toMatchObject({
     passageReference: 'Ephesians 1:3–14',
-    translationIds: ['CSB', 'NLT'],
+    translationIds: ['KJV', 'WEB'],
   });
   expect(requestBody?.bible).toMatchObject({
     references: [

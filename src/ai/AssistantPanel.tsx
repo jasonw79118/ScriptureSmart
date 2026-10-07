@@ -247,7 +247,7 @@ export function AssistantPanel({
         </p>
         {response.scriptureSources.map((source) => (
           <details key={source.reference}>
-            <summary>{source.reference} (WEB)</summary>
+            <summary>{source.reference} ({source.translation})</summary>
             <p className="preserve">{source.text}</p>
             <a href={source.url} target="_blank" rel="noopener noreferrer">
               View passage source
@@ -270,6 +270,7 @@ export function AssistantPanel({
         aria-label="Bible research sources"
       >
         <h3>Passage research · {research.reference}</h3>
+        <p className="muted">The selected Bible wording is shown above. ScriptureSmart AI explains it in present-day English below; that explanation is AI synthesis, not a replacement Bible translation.</p>
         {selected ? (
           <details>
             <summary>
@@ -344,7 +345,9 @@ export function AssistantPanel({
             {research.originalLanguage.words.length})
           </summary>
           {research.originalLanguage.words.length ? (
-            <ul>
+            <>
+              <p className="muted">The open dataset provides English-word anchors, Strong’s numbers, lemmas, or morphology where available. It does not provide original-script forms or direct glosses here, so those will not be guessed.</p>
+              <ul>
               {research.originalLanguage.words.map((word, i) => (
                 <li key={`${word.verse}-${i}`}>
                   {word.text ? (
@@ -366,7 +369,8 @@ export function AssistantPanel({
                     : ''}
                 </li>
               ))}
-            </ul>
+              </ul>
+            </>
           ) : (
             <p>
               Word-level annotations are not available for this passage. No

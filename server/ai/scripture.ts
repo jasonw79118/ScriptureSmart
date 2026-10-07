@@ -8,7 +8,7 @@ import {
 const cache = new Map<string, { expires: number; value: RetrievedPassage }>();
 export interface PublicBiblePassage {
   reference: string;
-  translationId: 'KJV';
+  translationId: 'KJV' | 'WEB';
   text: string;
   attribution: string;
   sourceUrl: string;
@@ -159,4 +159,28 @@ export async function retrievePassages(
   if (results.reduce((n, p) => n + p.text.length, 0) > 32000)
     throw new AIError('too-large');
   return results;
+}
+
+export async function retrieveWebPassage({
+  reference,
+  transport = globalThis.fetch.bind(globalThis),
+}: {
+  reference: string;
+  transport?: typeof fetch;
+}): Promise<PublicBiblePassage> {
+  const [passage] = await retrievePassages([reference], transport);
+  return {
+    reference: passage.reference,
+    translationId: 'WEB',
+    text: passage.text,
+    attribution: 'World English Bible (WEB), public-domain text.',
+    sourceUrl: passage.url,
+    rights: {
+      displayAllowed: true,
+      aiContextAllowed: true,
+      cachingAllowed: true,
+      localStorageAllowed: true,
+      commercialUseAllowed: true,
+    },
+  };
 }

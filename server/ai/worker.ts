@@ -47,6 +47,7 @@ async function apiBibleKey(env: Env): Promise<string> {
 const statusCodes: Record<AIErrorCode, number> = {
   'auth-unavailable': 503,
   'scripture-unavailable': 503,
+  'bible-network': 503,
   'translation-unavailable': 404,
   'setup-required': 503,
   'sign-in': 401,

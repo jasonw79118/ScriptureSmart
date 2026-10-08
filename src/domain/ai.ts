@@ -161,6 +161,8 @@ export const aiErrors = {
     'ScriptureSmart AI is temporarily unavailable. Please try again later.',
   network:
     'Unable to reach ScriptureSmart AI. Check your connection and try again.',
+  'bible-network':
+    'Could not reach the Bible passage service. Check your connection and confirm the site domain is allowed, then try again.',
   timeout: 'ScriptureSmart AI took too long to respond. Try a shorter request.',
   malformed:
     'ScriptureSmart AI returned an incomplete response. Your work is unchanged; please try again.',

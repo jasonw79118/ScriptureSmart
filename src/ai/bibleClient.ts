@@ -44,14 +44,31 @@ export async function getBiblePassage(
   const url = new URL(`${root}/api/bible/passage`, window.location.origin);
   url.searchParams.set('reference', reference);
   url.searchParams.set('translationId', translationId);
-  const response = await fetch(url, {
-    credentials: 'omit',
-    signal: AbortSignal.any([
-      ...(signal ? [signal] : []),
-      AbortSignal.timeout(30000),
-    ]),
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(new DOMException('Timed out', 'TimeoutError')),
+    30000,
+  );
+  const abortFromCaller = () =>
+    controller.abort(signal?.reason ?? new DOMException('Aborted', 'AbortError'));
+  if (signal?.aborted) abortFromCaller();
+  else signal?.addEventListener('abort', abortFromCaller, { once: true });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      credentials: 'omit',
+      signal: controller.signal,
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch (error) {
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    if (controller.signal.aborted) throw new AIError('timeout');
+    if (error instanceof AIError) throw error;
+    throw new AIError('bible-network');
+  } finally {
+    clearTimeout(timeout);
+    signal?.removeEventListener('abort', abortFromCaller);
+  }
   if (!response.ok) {
     let serverCode = '';
     try {

@@ -20,6 +20,7 @@ import './App.css';
 import './community/community.css';
 import './redesign.css';
 import { useCommunity } from './community/CommunityContext';
+import { suggestedReferences } from './domain/bible';
 import { ChurchPage } from './community/ChurchPage';
 import { LoginPage } from './community/LoginPage';
 import { Onboarding } from './community/Onboarding';
@@ -286,14 +287,9 @@ function App() {
   function startHomeStudy(query: string) {
     const trimmed = query.trim();
     if (!trimmed) return;
-    const referencePattern =
-      /^[1-3]?\s*[A-Za-z]+(?:\s+[A-Za-z]+)*\s+\d+(?::\d+)?(?:\s*[-–]\s*\d+(?::\d+)?)?$/;
-    if (referencePattern.test(trimmed)) {
-      setPassage(trimmed);
-      setStudyQuestion(`Explain ${trimmed}`);
-    } else {
-      setStudyQuestion(trimmed);
-    }
+    const reference = suggestedReferences(trimmed)[0];
+    if (reference) setPassage(reference);
+    setStudyQuestion(trimmed);
     go('study');
   }
   function openDraft(draft: Draft) {
@@ -834,6 +830,7 @@ function App() {
               )}
               {route === 'study' && (
                 <PassageWorkspace
+                  key={passage}
                   passage={passage}
                   setPassage={setPassage}
                   preferred={preferredTranslation}

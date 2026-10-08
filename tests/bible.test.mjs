@@ -33,6 +33,10 @@ test('adoption questions select the curated Pauline passages, other topics use e
     suggestedReferences('tell me about 1 john 1-10?'),
     ['1 John 1:1-10'],
   );
+  assert.deepEqual(
+    suggestedReferences('Explain Ephesians 2:8-10'),
+    ['Ephesians 2:8-10'],
+  );
   assert.equal(normalizeReference('https://evil.test'), null);
   assert.equal(normalizeReference('Romans 8:30-1'), null);
   assert.equal(normalizeReference('Romans 0'), null);

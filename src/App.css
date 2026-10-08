@@ -2962,12 +2962,8 @@ main {
 @media (max-width: 1200px) {
   .sidebar { width: 228px; }
   .main-shell { margin-left: 228px; }
-  .study-desk-layout,
   .studio-workspace { grid-template-columns: 1fr 1fr; }
-  .study-tool-rail,
   .studio-outline { grid-column: 1 / -1; position: static; }
-  .study-reader { grid-column: 1; }
-  .study-desk-layout > .ai-assistant,
   .studio-ai-rail { grid-column: 2; position: static; max-height: none; }
 }
 @media (max-width: 950px) {

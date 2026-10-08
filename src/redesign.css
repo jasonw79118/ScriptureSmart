@@ -1133,8 +1133,11 @@ main#main-content {
   grid-area: assistant;
   position: sticky;
   top: 72px;
+  display: flex;
+  min-height: min(680px, calc(100dvh - 84px));
+  flex-direction: column;
   max-height: calc(100vh - 84px);
-  overflow: auto;
+  overflow: hidden;
   margin: 0;
   padding: 15px 13px;
   border: 1px solid #e9e2d6;
@@ -1148,6 +1151,20 @@ main#main-content {
 .study-desk-layout > .ai-assistant .ai-chat-empty {
   grid-template-columns: 1fr;
   gap: 6px;
+}
+.study-desk-layout > .ai-assistant > .ai-chat {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+}
+.study-desk-layout > .ai-assistant > .ai-chat > .ai-chat-thread {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 .study-desk-layout > .ai-assistant .ai-chat-empty .button {
   min-height: 43px;
@@ -1165,8 +1182,9 @@ main#main-content {
   font-size: 12px;
 }
 .study-desk-layout > .ai-assistant .ai-chat-composer {
-  position: sticky;
-  bottom: 0;
+  position: relative;
+  flex: 0 0 auto;
+  margin-top: auto;
   border-color: #e5dece;
   border-radius: 6px;
   background: #fffdf7;
@@ -2024,6 +2042,7 @@ main#main-content {
   .study-desk-layout > .ai-assistant {
     position: static;
     max-height: none;
+    min-height: 0;
     overflow: visible;
     grid-area: assistant;
     order: 2;
@@ -2215,6 +2234,14 @@ main#main-content {
   .study-desk-layout > .ai-assistant {
     order: 2;
     max-height: none;
+    min-height: 0;
+    overflow: visible;
+  }
+  .study-desk-layout > .ai-assistant > .ai-chat {
+    overflow: visible;
+  }
+  .study-desk-layout > .ai-assistant > .ai-chat > .ai-chat-thread {
+    overflow: visible;
   }
   .study-tool-rail {
     order: 3;

@@ -403,6 +403,7 @@ function App() {
   return (
     <div
       className="app-shell"
+      data-device={mobile ? 'mobile' : 'web'}
       data-church-theme={
         community.church?.name === 'Redeemer Christian Church'
           ? 'redeemer'

@@ -114,9 +114,10 @@ export function Library({
     {
       title: 'Modern Voices',
       key: 'Modern Voices',
-      intro: 'Contemporary pastoral and theological resources.',
+      intro:
+        'Contemporary Bible translations and study resources, including the Berean Study Bible.',
       variant: 'modern',
-      live: false,
+      live: true,
     },
     {
       title: 'Your Church / Your Notes',
@@ -266,14 +267,18 @@ export function Library({
                   ? 'BIBLE TEXT'
                   : section.variant === 'church'
                     ? 'CONNECTED CONTENT'
-                    : 'RESOURCE COLLECTION'}
+                    : section.variant === 'modern'
+                      ? 'EXTERNAL STUDY RESOURCE'
+                      : 'RESOURCE COLLECTION'}
               </span>
               <h2>{section.title}</h2>
               <p>{section.intro}</p>
             </div>
             {section.live && (
               <span className="source-availability">
-                Available in your workspace
+                {section.variant === 'modern'
+                  ? 'External resource'
+                  : 'Available in your workspace'}
               </span>
             )}
           </header>
@@ -296,6 +301,24 @@ export function Library({
                   </span>
                 </button>
               ))}
+            </div>
+          )}
+          {section.variant === 'modern' && (
+            <div className="church-resource-grid">
+              <a
+                className="church-resource-card"
+                href="https://bereanbibles.com/about-berean-study-bible/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <small>BEREAN BIBLE</small>
+                <strong>About the Berean Study Bible</strong>
+                <span>
+                  Translation overview and the Berean project’s stated goals
+                  for public reading, study, memorization, and evangelism.
+                </span>
+                <span>Open source ↗</span>
+              </a>
             </div>
           )}
           {section.variant === 'church' && (

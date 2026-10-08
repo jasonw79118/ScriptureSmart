@@ -1,5 +1,5 @@
 import { AssistantPanel, type ContextChoice } from '../ai/AssistantPanel';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Note, TableItem } from '../domain/models';
 import {
   defaultComparisonTranslationId,
@@ -65,6 +65,18 @@ export function PassageWorkspace({
   const [loadingPassages, setLoadingPassages] = useState<
     Record<string, boolean>
   >({});
+  const [passageRetry, setPassageRetry] = useState(0);
+  const inFlightPassages = useRef(new Map<string, AbortController>());
+  const passageTextsRef = useRef(passageTexts);
+  const passageErrorsRef = useRef(passageErrors);
+
+  useEffect(() => {
+    passageTextsRef.current = passageTexts;
+  }, [passageTexts]);
+
+  useEffect(() => {
+    passageErrorsRef.current = passageErrors;
+  }, [passageErrors]);
 
   useEffect(() => {
     const nextTranslation = availableTranslationIds.includes(preferred)
@@ -101,43 +113,61 @@ export function PassageWorkspace({
 
   useEffect(() => {
     const controllers: AbortController[] = [];
+    const requestKeys: string[] = [];
+    const inFlight = inFlightPassages.current;
+    let active = true;
     const ids = tab === 'Compare' ? [translation, comparison] : [translation];
     for (const id of ids) {
       const key = `${id}:${passage}`;
-      if (passageTexts[key] || loadingPassages[key] || passageErrors[key])
+      if (
+        passageTextsRef.current[key] ||
+        passageErrorsRef.current[key] ||
+        inFlight.has(key)
+      )
         continue;
       const controller = new AbortController();
       controllers.push(controller);
+      requestKeys.push(key);
+      inFlight.set(key, controller);
       setLoadingPassages((current) => ({ ...current, [key]: true }));
       setPassageErrors((current) => ({ ...current, [key]: '' }));
       void getBiblePassage(passage, id, controller.signal)
         .then((result) => {
+          if (!active) return;
           setPassageTexts((current) => ({ ...current, [key]: result }));
           void reportApiBibleViews([result.fumsToken], fumsUserId);
         })
-        .catch((error) =>
+        .catch((error) => {
+          if (!active || controller.signal.aborted) return;
           setPassageErrors((current) => ({
             ...current,
             [key]:
               error instanceof AIError
                 ? error.message
                 : 'Bible text could not be loaded.',
-          })),
-        )
-        .finally(() =>
-          setLoadingPassages((current) => ({ ...current, [key]: false })),
-        );
+          }));
+        })
+        .finally(() => {
+          if (inFlight.get(key) === controller) inFlight.delete(key);
+          if (active)
+            setLoadingPassages((current) => ({ ...current, [key]: false }));
+        });
     }
-    return () => controllers.forEach((controller) => controller.abort());
+    return () => {
+      active = false;
+      controllers.forEach((controller, index) => {
+        controller.abort();
+        const key = requestKeys[index];
+        if (inFlight.get(key) === controller) inFlight.delete(key);
+      });
+    };
   }, [
     tab,
     passage,
     translation,
     comparison,
     fumsUserId,
-    passageTexts,
-    loadingPassages,
-    passageErrors,
+    passageRetry,
   ]);
 
   const renderText = (id: string) => {
@@ -157,16 +187,28 @@ export function PassageWorkspace({
           {id === 'KJV' || id === 'WEB' ? (
             <button
               className="text-button"
-              onClick={() =>
+              onClick={() => {
                 setPassageErrors((current) => ({ ...current, [key]: '' }))
-              }
+                setPassageRetry((retry) => retry + 1);
+              }}
             >
               Try loading again
             </button>
           ) : (
-            <button className="text-button" onClick={connect}>
-              View Bible connections
-            </button>
+            <>
+              <button
+                className="text-button"
+                onClick={() => {
+                  setPassageErrors((current) => ({ ...current, [key]: '' }));
+                  setPassageRetry((retry) => retry + 1);
+                }}
+              >
+                Try loading again
+              </button>
+              <button className="text-button" onClick={connect}>
+                View Bible connections
+              </button>
+            </>
           )}
         </div>
       );

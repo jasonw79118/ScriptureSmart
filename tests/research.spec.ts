@@ -110,6 +110,9 @@ test('study chat gathers selected translation and sourced open research', async 
   });
 
   await page.goto('/#study');
+  await expect(page.locator('.scripture-text')).toContainText(
+    'He predestined us to adoption as sons and daughters.',
+  );
   const prompt =
     'Compare adoption in Ephesians 1 with other areas Paul discussed adoption. Is adoption predetermined?';
   await page.getByRole('textbox', { name: 'Study question' }).fill(prompt);

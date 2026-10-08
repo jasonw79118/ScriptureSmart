@@ -40,6 +40,23 @@ test('all routes render without overflow or runtime errors', async ({
   }
   expect(errors).toEqual([]);
 });
+test(
+  'library includes the Berean Study Bible resource with source attribution',
+  async ({ page }) => {
+    await page.goto('/#research');
+    await page.getByRole('button', { name: 'Modern Voices' }).click();
+    const resource = page.getByRole('link', {
+      name: /About the Berean Study Bible/,
+    });
+    await expect(resource).toHaveAttribute(
+      'href',
+      'https://bereanbibles.com/about-berean-study-bible/',
+    );
+    await expect(resource).toContainText(
+      'public reading, study, memorization, and evangelism',
+    );
+  },
+);
 test('draft editing, reload, search and text export', async ({ page }) => {
   await page.goto('/#sermons');
   await page.getByRole('button', { name: 'New sermon' }).click();

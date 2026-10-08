@@ -55,7 +55,7 @@ The Free Use Bible API supplies a public-domain BSB comparison passage, OpenBibl
 
 Bible research is gathered server-side and attached to passage-study answers. Retrieved resources remain separate from ScriptureSmart AI synthesis. Users can compare the selected edition with open BSB wording in the response. Commentary, reference lists, word annotations, and selected translation text are shown as retrieved source material, not AI-authored claims.
 
-The API.Bible app key must be stored as the Cloudflare Worker runtime secret `API_BIBLE_API_KEY`. See [Worker setup](server/ai/README.md#operator-setup).
+The API.Bible app key is stored in Cloudflare Secrets Store as `API_Bible_Key` and bound to the Worker in `wrangler.jsonc`. See [Worker setup](server/ai/README.md#operator-setup).
 
 ## Architecture
 

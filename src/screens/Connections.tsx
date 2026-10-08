@@ -167,7 +167,7 @@ export function Connections() {
           {bibleConnection?.unavailableTranslationIds?.length ? (
             <p className="muted">
               {bibleConnection.apiBibleStatus === 'not-configured'
-                ? 'Cloudflare is missing the API_BIBLE_API_KEY secret. The old YOUVERSION_API secret name is also checked for compatibility.'
+                ? 'The Cloudflare Secrets Store key API_Bible_Key is not available to this Worker yet.'
                 : bibleConnection.apiBibleStatus === 'unauthorized'
                   ? 'API.Bible rejected the app key. Check the API_BIBLE_API_KEY secret in Cloudflare.'
                   : bibleConnection.apiBibleStatus === 'not-approved'
@@ -211,7 +211,7 @@ export function Connections() {
                       : `${provider.capabilities.join(' · ')}. Access depends on approved APIs and applicable rights.`}
                 </p>
                 {provider.id === 'api-bible' && (
-                  <small>Cloudflare secret: API_BIBLE_API_KEY</small>
+                  <small>Cloudflare Secrets Store: API_Bible_Key</small>
                 )}
                 {provider.id === 'api-bible' ? (
                   <a

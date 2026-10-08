@@ -19,6 +19,9 @@ import {
 interface RateLimiter {
   limit(input: { key: string }): Promise<{ success: boolean }>;
 }
+interface SecretsStoreSecret {
+  get(): Promise<string>;
+}
 export interface Env extends ModelConfig {
   AI: AIBinding;
   AI_USER_LIMIT: RateLimiter;
@@ -27,8 +30,19 @@ export interface Env extends ModelConfig {
   APPWRITE_PROJECT_ID: string;
   ALLOWED_ORIGINS: string;
   API_BIBLE_API_KEY?: string;
+  API_BIBLE_SECRET?: SecretsStoreSecret;
   /** Backward-compatible name used by the previously wired provider. */
   YOUVERSION_API?: string;
+}
+
+async function apiBibleKey(env: Env): Promise<string> {
+  try {
+    const storedKey = await env.API_BIBLE_SECRET?.get();
+    if (storedKey?.trim()) return storedKey.trim();
+  } catch {
+    // Fall through to per-Worker key bindings for local development/migration.
+  }
+  return env.API_BIBLE_API_KEY?.trim() || env.YOUVERSION_API?.trim() || '';
 }
 const statusCodes: Record<AIErrorCode, number> = {
   'auth-unavailable': 503,
@@ -189,7 +203,7 @@ export function createWorker(
       if (path === '/api/ai/status' && request.method === 'GET')
         return json({ available: ready(env), provider: 'scripturesmart-ai' });
       if (path === '/api/bible/status' && request.method === 'GET') {
-        const apiBibleKey = env.API_BIBLE_API_KEY?.trim() || env.YOUVERSION_API?.trim();
+        const key = await apiBibleKey(env);
         let apiBibleActiveTranslations: Awaited<
           ReturnType<typeof listApiBibleTranslations>
         > = [];
@@ -198,13 +212,13 @@ export function createWorker(
           | 'not-configured'
           | 'unauthorized'
           | 'not-approved'
-          | 'unavailable' = apiBibleKey
+          | 'unavailable' = key
           ? 'connected'
           : 'not-configured';
-        if (apiBibleKey) {
+        if (key) {
           try {
             apiBibleActiveTranslations = await listApiBibleTranslations({
-              apiKey: apiBibleKey,
+              apiKey: key,
               transport,
             });
             if (!apiBibleActiveTranslations.length) apiBibleStatus = 'not-approved';
@@ -255,7 +269,7 @@ export function createWorker(
             });
           } else if (apiBibleTranslationIds.some((item) => item === translationId)) {
             passage = await retrieveApiBiblePassage({
-              apiKey: env.API_BIBLE_API_KEY?.trim() || env.YOUVERSION_API,
+              apiKey: await apiBibleKey(env),
               reference: normalized,
               translationId,
               transport,
@@ -343,14 +357,14 @@ export function createWorker(
             const [selectedResults, openResult] = await Promise.all([
               Promise.allSettled(
                 (translationIds.length ? translationIds : [translationId]).map(
-                  (id) =>
+                  async (id) =>
                     id === 'KJV'
                       ? retrieveKjvPassage({ reference, transport })
                       : id === 'WEB'
                         ? retrieveWebPassage({ reference, transport })
                         : apiBibleTranslationIds.includes(id as (typeof apiBibleTranslationIds)[number])
                         ? retrieveApiBiblePassage({
-                          apiKey: env.API_BIBLE_API_KEY?.trim() || env.YOUVERSION_API,
+                          apiKey: await apiBibleKey(env),
                           reference,
                           translationId: id,
                           transport,

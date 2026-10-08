@@ -248,6 +248,25 @@ test('worker discovers licensed API.Bible translations and adds public editions 
   );
   assert.ok(!JSON.stringify(body).includes('api-bible-server-secret'));
 });
+test('worker reads API_Bible_Key through the Cloudflare Secrets Store binding', async () => {
+  const requested = [];
+  const response = await createWorker(async (url, options) => {
+    requested.push({ url: String(url), options });
+    const translationId = new URL(String(url)).searchParams.get('abbreviation');
+    return Response.json({
+      data: [{ id: `${translationId}-id`, abbreviation: translationId, name: `${translationId} edition` }],
+    });
+  }).fetch(
+    new Request('https://worker.example.test/api/bible/status'),
+    env({ API_BIBLE_SECRET: { get: async () => 'secret-store-api-bible-key' } }),
+  );
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.deepEqual(body.translations.map((item) => item.id), ['KJV', 'WEB', 'CSB', 'NLT', 'NKJV']);
+  assert.equal(requested.length, 3);
+  assert.ok(requested.every((call) => call.options.headers['api-key'] === 'secret-store-api-bible-key'));
+  assert.ok(!JSON.stringify(body).includes('secret-store-api-bible-key'));
+});
 test('Bible status safely handles an API.Bible key that has no licensed editions', async () => {
   const response = await createWorker(async (url) => {
     if (String(url).includes('/bibles?'))

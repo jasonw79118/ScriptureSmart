@@ -34,9 +34,9 @@ No deployment, external AI connection, or unauthenticated development bypass is 
 
 ### Bible provider runtime secret
 
-The current GitHub Actions workflow deploys only GitHub Pages. A repository secret is not automatically available to this Cloudflare Worker, and this workflow does not transfer it. Store the API.Bible key as the Cloudflare Worker secret `API_BIBLE_API_KEY`. The Worker temporarily accepts the old `YOUVERSION_API` secret name as a fallback so an existing key can be checked during the migration.
+The API.Bible key is stored in the account-level Cloudflare Secrets Store as `API_Bible_Key`. `wrangler.jsonc` binds it to the Worker as `API_BIBLE_SECRET`; the Worker reads it with the binding's asynchronous `get()` method. The old per-Worker `YOUVERSION_API` binding remains only as a migration fallback. GitHub Pages does not transfer GitHub secrets to Cloudflare.
 
-To configure it without placing the value in source or a command argument, open the Cloudflare dashboard, select the `scripturesmart-ai` Worker, then go to **Settings → Variables and Secrets → Add → Secret**. Enter `API_BIBLE_API_KEY` as the name and paste the app key into the masked value field, then save and redeploy the Worker. You can also run `npx wrangler secret put API_BIBLE_API_KEY` in an authenticated terminal; Wrangler prompts for the value. Never put it in `VITE_*`, `.env.example`, a committed file, or a build log. No GitHub workflow currently deploys or updates this Worker.
+To change the key, update `API_Bible_Key` in Cloudflare **Secrets Store**. The Worker binding in `wrangler.jsonc` points to store `default_secrets_store`; deploying the Worker publishes the binding. Never put the key in `VITE_*`, `.env.example`, a committed file, or a build log. No GitHub workflow currently deploys or updates this Worker.
 
 ## Local development
 

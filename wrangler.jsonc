@@ -4,6 +4,13 @@
   "main": "server/ai/worker.ts",
   "compatibility_date": "2026-09-01",
   "ai": { "binding": "AI", "remote": true },
+  "secrets_store_secrets": [
+    {
+      "binding": "API_BIBLE_SECRET",
+      "store_id": "43a07ab104a3460d862c9bc75350eb52",
+      "secret_name": "API_Bible_Key"
+    }
+  ],
   "vars": {
     "SCRIPTURESMART_AI_MODEL": "@cf/google/gemma-4-26b-a4b-it",
     "SCRIPTURESMART_AI_FALLBACK_MODEL": "",

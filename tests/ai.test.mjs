@@ -196,6 +196,29 @@ test('worker rejects missing/forged credentials, unverified users and wrong orig
   );
   assert.equal(calls, 0);
 });
+test('worker permits the www church-site origin for browser passage requests', async () => {
+  const worker = createWorker(verified);
+  const response = await worker.fetch(
+    new Request('https://worker.example.test/api/bible/passage', {
+      method: 'OPTIONS',
+      headers: {
+        Origin: 'https://www.scripture-smart.com',
+        'Access-Control-Request-Method': 'GET',
+        'Access-Control-Request-Headers': 'authorization',
+      },
+    }),
+    env({
+      ALLOWED_ORIGINS:
+        'https://scripture.example.test,https://www.scripture-smart.com',
+    }),
+  );
+  assert.equal(response.status, 204);
+  assert.equal(
+    response.headers.get('Access-Control-Allow-Origin'),
+    'https://www.scripture-smart.com',
+  );
+  assert.match(response.headers.get('Access-Control-Allow-Headers'), /Authorization/i);
+});
 test('worker verifies caller with fixed Appwrite endpoint and applies caller-based limits', async () => {
   let seen, key;
   const worker = createWorker(async (url, options) => {

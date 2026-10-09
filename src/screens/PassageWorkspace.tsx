@@ -7,7 +7,12 @@ import {
   translations,
 } from '../domain/providers';
 import { Badge, Empty } from '../components';
-import { getBiblePassage, type BiblePassageResult } from '../ai/bibleClient';
+import {
+  getBiblePassage,
+  getBibleResearch,
+  type BiblePassageResult,
+  type OpenBibleResearchResult,
+} from '../ai/bibleClient';
 import { AIError } from '../domain/ai';
 import { testamentForReference } from '../domain/bible';
 import { reportApiBibleViews } from '../ai/fums';
@@ -75,6 +80,10 @@ export function PassageWorkspace({
     Record<string, boolean>
   >({});
   const [passageRetry, setPassageRetry] = useState(0);
+  const [openResearch, setOpenResearch] =
+    useState<OpenBibleResearchResult | null>(null);
+  const [openResearchLoading, setOpenResearchLoading] = useState(false);
+  const [openResearchError, setOpenResearchError] = useState('');
   const inFlightPassages = useRef(new Map<string, AbortController>());
   const passageTextsRef = useRef(passageTexts);
   const passageErrorsRef = useRef(passageErrors);
@@ -100,6 +109,33 @@ export function PassageWorkspace({
         defaultComparisonTranslationId,
     );
   }, [preferred, comparisons, availableTranslationIds]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+    setOpenResearch(null);
+    setOpenResearchError('');
+    setOpenResearchLoading(true);
+    void getBibleResearch(passage, controller.signal)
+      .then((research) => {
+        if (active) setOpenResearch(research);
+      })
+      .catch((error) => {
+        if (!active || controller.signal.aborted) return;
+        setOpenResearchError(
+          error instanceof AIError
+            ? error.message
+            : 'Passage research could not be loaded.',
+        );
+      })
+      .finally(() => {
+        if (active) setOpenResearchLoading(false);
+      });
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [passage, fumsUserId]);
 
   const noteChoices = (n: Note[]): ContextChoice[] =>
     n.map((item) => ({
@@ -265,6 +301,12 @@ export function PassageWorkspace({
     ]);
     setNote('');
   };
+  const planReferences = [
+    passage,
+    ...(openResearch?.references ?? []).map((item) => item.reference),
+  ]
+    .filter((reference, index, all) => all.indexOf(reference) === index)
+    .slice(0, 7);
 
   return (
     <section className="study-desk-page">
@@ -502,11 +544,39 @@ export function PassageWorkspace({
                 </span>
                 <span className="disclosure-count">Explore</span>
               </summary>
-              <Empty title="Follow the connections">
-                Verified related passages will appear here when a
-                cross-reference source is connected. ScriptureSmart AI can also
-                help find related passages in the chat panel.
-              </Empty>
+              {openResearchLoading ? (
+                <p role="status">Finding sourced cross-references…</p>
+              ) : openResearchError ? (
+                <p role="alert">{openResearchError}</p>
+              ) : openResearch?.references.length ? (
+                <div className="study-source-results">
+                  <p>
+                    Related references from {openResearch.source}. Select one to
+                    open it in the reader.
+                  </p>
+                  <ul>
+                    {openResearch.references.slice(0, 20).map((item) => (
+                      <li key={item.reference}>
+                        <button
+                          className="text-button"
+                          onClick={() => setPassage(item.reference)}
+                        >
+                          {item.reference}
+                        </button>
+                        {item.score !== undefined && (
+                          <small>Source score: {item.score}</small>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <small>Scores are provided by the source dataset.</small>
+                </div>
+              ) : (
+                <Empty title="No cross-references returned for this passage">
+                  The connected open research source did not return related
+                  references for this range.
+                </Empty>
+              )}
             </details>
             <details id="commentary-insights" open={tab === 'Commentary'}>
               <summary>
@@ -517,11 +587,42 @@ export function PassageWorkspace({
                 </span>
                 <span className="disclosure-count">Sources</span>
               </summary>
-              <Empty title="Commentary sources are not connected">
-                No historical or modern commentary is currently available in the
-                connected resource library. ScriptureSmart AI can discuss
-                interpretive questions, clearly labeled as AI synthesis.
-              </Empty>
+              {openResearchLoading ? (
+                <p role="status">Checking available commentary…</p>
+              ) : openResearchError ? (
+                <p role="alert">{openResearchError}</p>
+              ) : openResearch?.commentaries.length ? (
+                <div className="study-source-results">
+                  {openResearch.commentaries.map((item) => (
+                    <article key={item.id}>
+                      <h3>{item.name}</h3>
+                      <pre className="preserve">{item.text}</pre>
+                      {item.website && (
+                        <a href={item.website} target="_blank" rel="noreferrer">
+                          Open source
+                        </a>
+                      )}{' '}
+                      {item.licenseUrl && (
+                        <a
+                          href={item.licenseUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          License information
+                        </a>
+                      )}
+                    </article>
+                  ))}
+                  <small>
+                    Retrieved commentary is separate from AI synthesis.
+                  </small>
+                </div>
+              ) : (
+                <Empty title="No matching commentary returned">
+                  The connected open research source did not provide a
+                  commentary excerpt for this passage.
+                </Empty>
+              )}
             </details>
             <details id="church-history" open={tab === 'Interpretations'}>
               <summary>
@@ -532,10 +633,37 @@ export function PassageWorkspace({
                 </span>
                 <span className="disclosure-count">Sources</span>
               </summary>
-              <Empty title="Historical sources are not connected">
-                No primary historical documents have been retrieved for this
-                passage yet.
-              </Empty>
+              <div className="study-source-results">
+                <p>
+                  Passage-specific historical documents are not retrieved yet.
+                  Browse these libraries of early Christian writings and Bible
+                  study resources:
+                </p>
+                <ul>
+                  <li>
+                    <a
+                      href="https://ccel.org/fathers"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Early Church Fathers · CCEL
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="https://bereanbibles.com/about-berean-study-bible/"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      About the Berean Study Bible
+                    </a>
+                  </li>
+                </ul>
+                <small>
+                  These links are reference resources, not claims that a source
+                  discusses this exact passage.
+                </small>
+              </div>
             </details>
             <details id="original-language" open={tab === 'Original language'}>
               <summary>
@@ -553,11 +681,41 @@ export function PassageWorkspace({
                 </span>
                 <span className="disclosure-count">Explore</span>
               </summary>
-              <Empty title="Open original-language annotations appear with a Bible research answer">
-                Some chapters include Strong’s identifiers, lemmas, or
-                morphology. Transliteration and gloss are shown only if the
-                source provides them; unavailable lexical fields are left blank.
-              </Empty>
+              {openResearchLoading ? (
+                <p role="status">Checking available word annotations…</p>
+              ) : openResearchError ? (
+                <p role="alert">{openResearchError}</p>
+              ) : openResearch?.words.length ? (
+                <div className="study-source-results">
+                  <ul>
+                    {openResearch.words.map((word, index) => (
+                      <li key={`${word.verse}-${index}`}>
+                        <strong>{word.text || `Verse ${word.verse}`}</strong>
+                        {word.lemma && <span> · lemma: {word.lemma}</span>}
+                        {word.strongs?.length ? (
+                          <span> · {word.strongs.join(', ')}</span>
+                        ) : null}
+                        {word.morph && <span> · morphology: {word.morph}</span>}
+                        {word.occurrences !== undefined && (
+                          <span> · occurrences: {word.occurrences}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <small>
+                    Source annotations. Original-script forms, transliteration,
+                    and glosses are not supplied for every word; missing fields
+                    are not guessed.
+                  </small>
+                </div>
+              ) : (
+                <Empty title="Open original-language annotations appear with a Bible research answer">
+                  Some chapters include Strong’s identifiers, lemmas, or
+                  morphology. Transliteration and gloss are shown only if the
+                  source provides them; unavailable lexical fields are left
+                  blank.
+                </Empty>
+              )}
             </details>
             <details id="reading-plans">
               <summary>
@@ -568,10 +726,38 @@ export function PassageWorkspace({
                 </span>
                 <span className="disclosure-count">Explore</span>
               </summary>
-              <Empty title="No reading plan is connected">
-                Reading plan content will appear when a verified source is
-                available.
-              </Empty>
+              {openResearchLoading ? (
+                <p role="status">Building a passage reading path…</p>
+              ) : openResearchError ? (
+                <p role="alert">{openResearchError}</p>
+              ) : (
+                <div className="study-source-results">
+                  <p>
+                    Suggested seven-session reading path using this passage and
+                    returned cross-references. This is assembled from source
+                    data, not a published reading plan.
+                  </p>
+                  <ol>
+                    {planReferences.map((reference, index) => (
+                      <li key={reference}>
+                        <span>Session {index + 1}: </span>
+                        <button
+                          className="text-button"
+                          onClick={() => setPassage(reference)}
+                        >
+                          {reference}
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                  {planReferences.length < 7 && (
+                    <small>
+                      The source returned {planReferences.length - 1}{' '}
+                      cross-references for this passage.
+                    </small>
+                  )}
+                </div>
+              )}
             </details>
             <details id="maps-timelines">
               <summary>
@@ -582,10 +768,34 @@ export function PassageWorkspace({
                 </span>
                 <span className="disclosure-count">Explore</span>
               </summary>
-              <Empty title="Map resources are not connected">
-                Verified maps and historical timelines have not been added to
-                this workspace.
-              </Empty>
+              {openResearchLoading ? (
+                <p role="status">Looking for people, places, and events…</p>
+              ) : openResearchError ? (
+                <p role="alert">{openResearchError}</p>
+              ) : openResearch?.entities.length ? (
+                <div className="study-source-results">
+                  <p>
+                    People, places, and events identified by the passage
+                    research source:
+                  </p>
+                  <ul>
+                    {openResearch.entities.map((item) => (
+                      <li key={`${item.type}-${item.name}`}>
+                        <strong>{item.name}</strong> · {item.type}
+                      </li>
+                    ))}
+                  </ul>
+                  <small>
+                    Map coordinates and dated timelines are not supplied by this
+                    source.
+                  </small>
+                </div>
+              ) : (
+                <Empty title="No place or event data returned for this passage">
+                  The connected source did not identify map-linked entities.
+                  Coordinates and timelines are not connected yet.
+                </Empty>
+              )}
             </details>
             <details id="study-notes" open={tab === 'Notes'}>
               <summary>

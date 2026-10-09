@@ -47,7 +47,7 @@ npm.cmd run dev:worker
 npm.cmd run dev -- --host 127.0.0.1 --port 5173
 ```
 
-Vite proxies `/api/ai` to `http://127.0.0.1:8787`. Leave `VITE_AI_API_BASE_URL` blank for this workflow. Sign in to ScriptureSmart, open a passage or editor, and choose Ask ScriptureSmart. Only requests deliberately submitted by the user invoke inference; status checks do not.
+Vite proxies `/api/ai` and `/api/bible` to `http://127.0.0.1:8787`. Leave `VITE_AI_API_BASE_URL` blank for this workflow. Sign in to ScriptureSmart, open a passage, and the app will load the selected Bible text and source-backed passage research. Choose Ask ScriptureSmart for a generated explanation; passage research requests do not invoke inference.
 
 The site works without the Worker: editing and community previews remain available, while AI generation shows an availability error. Tests mock authentication and inference and never call Cloudflare. No special fake-auth mode can be enabled in the deployed Worker.
 

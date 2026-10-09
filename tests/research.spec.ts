@@ -32,6 +32,41 @@ test('study chat gathers selected translation and sourced open research', async 
       },
     }),
   );
+  await page.route('**/api/bible/research?*', (route) =>
+    route.fulfill({
+      json: {
+        openTranslation: { id: 'BSB', verses: [] },
+        references: [
+          { reference: 'Romans 8:15', score: 91 },
+          { reference: 'Galatians 4:5', score: 86 },
+        ],
+        words: [
+          {
+            verse: 5,
+            text: 'adoption',
+            lemma: 'huiothesia',
+            strongs: ['G5206'],
+            morph: 'N-NSF',
+          },
+        ],
+        commentaries: [
+          {
+            id: 'sample-commentary',
+            name: 'Open commentary sample',
+            text: 'A sourced commentary excerpt for the passage.',
+            website: 'https://example.test/commentary',
+            licenseUrl: 'https://example.test/license',
+          },
+        ],
+        entities: [
+          { type: 'people', name: 'Paul' },
+          { type: 'places', name: 'Ephesus' },
+        ],
+        unavailable: [],
+        source: 'Free Use Bible API',
+      },
+    }),
+  );
   await page.route('**/api/bible/passage?*', (route) =>
     route.fulfill({
       json: {
@@ -113,6 +148,20 @@ test('study chat gathers selected translation and sourced open research', async 
   await expect(page.locator('.scripture-text')).toContainText(
     'He predestined us to adoption as sons and daughters.',
   );
+  await page.locator('#cross-references summary').click();
+  await expect(page.locator('#cross-references')).toContainText('Romans 8:15');
+  await page.locator('#commentary-insights summary').click();
+  await expect(page.locator('#commentary-insights')).toContainText(
+    'A sourced commentary excerpt for the passage.',
+  );
+  await page.locator('#original-language summary').click();
+  await expect(page.locator('#original-language')).toContainText('huiothesia');
+  await page.locator('#reading-plans summary').click();
+  await expect(page.locator('#reading-plans')).toContainText(
+    'Session 2: Romans 8:15',
+  );
+  await page.locator('#maps-timelines summary').click();
+  await expect(page.locator('#maps-timelines')).toContainText('Ephesus');
   const prompt =
     'Compare adoption in Ephesians 1 with other areas Paul discussed adoption. Is adoption predetermined?';
   await page.getByRole('textbox', { name: 'Study question' }).fill(prompt);
@@ -121,14 +170,15 @@ test('study chat gathers selected translation and sourced open research', async 
   await expect(
     page.getByText('Passage research · Ephesians 1:3-14'),
   ).toBeVisible();
-  await expect(page.getByText('Romans 8:15')).toBeVisible();
-  await expect(page.getByText('Galatians 4:5')).toBeVisible();
-  await expect(page.getByText('Greek → English (1)')).toBeVisible();
+  const chatResearch = page.locator('.ai-chat-thread');
+  await expect(chatResearch.getByText('Romans 8:15')).toBeVisible();
+  await expect(chatResearch.getByText('Galatians 4:5')).toBeVisible();
+  await expect(chatResearch.getByText('Greek → English (1)')).toBeVisible();
   await page
     .locator('summary')
     .filter({ hasText: 'People, places, and events' })
     .click();
-  await expect(page.getByText('Paul · people')).toBeVisible();
+  await expect(chatResearch.getByText('Paul · people')).toBeVisible();
   expect(requestBody?.context).toMatchObject({
     passageReference: 'Ephesians 1:3–14',
     translationIds: ['KJV', 'WEB'],

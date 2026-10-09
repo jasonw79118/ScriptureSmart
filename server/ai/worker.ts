@@ -1,5 +1,8 @@
 import { retrievePassages, retrieveWebPassage } from './scripture.ts';
-import { listApiBibleTranslations, retrieveApiBiblePassage } from './translationProviders.ts';
+import {
+  listApiBibleTranslations,
+  retrieveApiBiblePassage,
+} from './translationProviders.ts';
 import { AIError, isRecord, type AIErrorCode } from '../../src/domain/ai.ts';
 import { normalizeReference } from '../../src/domain/bible.ts';
 import { testamentForReference } from '../../src/domain/bible.ts';
@@ -188,6 +191,7 @@ export function createWorker(
           '/api/ai/generate',
           '/api/bible/status',
           '/api/bible/passage',
+          '/api/bible/research',
         ].includes(path)
       )
         return json({ code: 'invalid' }, 404);
@@ -213,16 +217,15 @@ export function createWorker(
           | 'not-configured'
           | 'unauthorized'
           | 'not-approved'
-          | 'unavailable' = key
-          ? 'connected'
-          : 'not-configured';
+          | 'unavailable' = key ? 'connected' : 'not-configured';
         if (key) {
           try {
             apiBibleActiveTranslations = await listApiBibleTranslations({
               apiKey: key,
               transport,
             });
-            if (!apiBibleActiveTranslations.length) apiBibleStatus = 'not-approved';
+            if (!apiBibleActiveTranslations.length)
+              apiBibleStatus = 'not-approved';
           } catch {
             apiBibleStatus = 'unavailable';
           }
@@ -241,6 +244,36 @@ export function createWorker(
             (id) => !translations.some((item) => item.id === id),
           ),
         });
+      }
+      if (path === '/api/bible/research' && request.method === 'GET') {
+        try {
+          if (!ready(env)) throw new AIError('setup-required');
+          if (
+            !(await env.AI_GLOBAL_LIMIT.limit({ key: 'all-requests' })).success
+          )
+            throw new AIError('rate-limit');
+          const userId = await verifiedUser(request, env, transport);
+          await checkAllowance(env, userId);
+          const reference = normalizeReference(
+            new URL(request.url).searchParams.get('reference') ?? '',
+          );
+          if (!reference) throw new AIError('invalid');
+          const research = await retrieveOpenBibleResearch({
+            reference,
+            transport,
+          });
+          return json(research);
+        } catch (error) {
+          const safe =
+            error instanceof AIError
+              ? error
+              : new AIError('scripture-unavailable');
+          return json(
+            { code: safe.code, message: safe.message },
+            statusCodes[safe.code],
+            safe.code === 'rate-limit' ? { 'Retry-After': '60' } : {},
+          );
+        }
       }
       if (path === '/api/bible/passage' && request.method === 'GET') {
         try {
@@ -268,7 +301,9 @@ export function createWorker(
               reference: normalized,
               transport,
             });
-          } else if (apiBibleTranslationIds.some((item) => item === translationId)) {
+          } else if (
+            apiBibleTranslationIds.some((item) => item === translationId)
+          ) {
             passage = await retrieveApiBiblePassage({
               apiKey: await apiBibleKey(env),
               reference: normalized,
@@ -303,7 +338,7 @@ export function createWorker(
         return json({ code: 'invalid' }, 405, {
           Allow: path.endsWith('status')
             ? 'GET'
-            : path.endsWith('passage')
+            : path.endsWith('passage') || path.endsWith('research')
               ? 'GET'
               : 'POST',
         });
@@ -363,14 +398,18 @@ export function createWorker(
                       ? retrieveKjvPassage({ reference, transport })
                       : id === 'WEB'
                         ? retrieveWebPassage({ reference, transport })
-                        : apiBibleTranslationIds.includes(id as (typeof apiBibleTranslationIds)[number])
-                        ? retrieveApiBiblePassage({
-                          apiKey: await apiBibleKey(env),
-                          reference,
-                          translationId: id,
-                          transport,
-                        })
-                        : Promise.reject(new Error('translation-unavailable')),
+                        : apiBibleTranslationIds.includes(
+                              id as (typeof apiBibleTranslationIds)[number],
+                            )
+                          ? retrieveApiBiblePassage({
+                              apiKey: await apiBibleKey(env),
+                              reference,
+                              translationId: id,
+                              transport,
+                            })
+                          : Promise.reject(
+                              new Error('translation-unavailable'),
+                            ),
                 ),
               ),
               Promise.allSettled([
@@ -381,8 +420,8 @@ export function createWorker(
             const researchResult = openResult[0];
             const toSelected = (
               item: PromiseSettledResult<
-                Awaited<ReturnType<typeof retrieveKjvPassage>>
-                  | Awaited<ReturnType<typeof retrieveWebPassage>>
+                | Awaited<ReturnType<typeof retrieveKjvPassage>>
+                | Awaited<ReturnType<typeof retrieveWebPassage>>
                 | Awaited<ReturnType<typeof retrieveApiBiblePassage>>
               >,
             ) =>
@@ -414,13 +453,9 @@ export function createWorker(
                 reference,
                 selectedTranslationId: translationId,
                 testament,
-                ...(toSelected(
-                  selectedResult,
-                )
+                ...(toSelected(selectedResult)
                   ? {
-                      selected: toSelected(
-                        selectedResult,
-                      )!,
+                      selected: toSelected(selectedResult)!,
                     }
                   : {}),
                 comparisons: comparisonTranslations,

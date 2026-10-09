@@ -57,7 +57,19 @@ export function AssistantPanel({
   onOpenStudyChat?: (chat: StudyChat) => void;
 }) {
   const chatMode = allowScripture;
-  const [open, setOpen] = useState(chatMode);
+  const [isSmallScreen, setIsSmallScreen] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 720px)').matches,
+  );
+  const [open, setOpen] = useState(
+    () =>
+      chatMode &&
+      !(
+        typeof window !== 'undefined' &&
+        window.matchMedia('(max-width: 720px)').matches
+      ),
+  );
   const [prompt, setPrompt] = useState('');
   const [includeScripture, setIncludeScripture] = useState(allowScripture);
   const [customReferences, setCustomReferences] = useState<string | null>(null);
@@ -80,6 +92,25 @@ export function AssistantPanel({
   const [selectedWord, setSelectedWord] = useState<number | null>(null);
   const controller = useRef<AbortController | null>(null);
   const operation = useRef(0);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 720px)');
+    const update = () => {
+      setIsSmallScreen(media.matches);
+      setOpen(chatMode && !media.matches);
+    };
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, [chatMode]);
+
+  useEffect(() => {
+    if (!chatMode || !isSmallScreen || !open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [chatMode, isSmallScreen, open]);
 
   useEffect(
     () => () => {
@@ -538,7 +569,9 @@ export function AssistantPanel({
   }
 
   return (
-    <section className="panel ai-assistant">
+    <section
+      className={`panel ai-assistant${chatMode ? ' study-chat-assistant' : ''}${isSmallScreen && open ? ' mobile-chat-open' : ''}`}
+    >
       <div className="section-heading">
         <div>
           <Badge>Built-in assistant</Badge>
@@ -550,16 +583,22 @@ export function AssistantPanel({
             </p>
           )}
         </div>
-        {!chatMode && (
+        {(!chatMode || isSmallScreen) && (
           <button
-            className="button secondary"
+            className={`button secondary${chatMode ? ' mobile-chat-toggle' : ''}`}
             aria-expanded={open}
             onClick={() => {
-              if (busy) cancel();
+              if (busy && !open) cancel();
               setOpen(!open);
             }}
           >
-            {open ? 'Close assistant' : 'Ask ScriptureSmart'}
+            {open
+              ? chatMode
+                ? 'Close chat'
+                : 'Close assistant'
+              : chatMode
+                ? 'Open chat'
+                : 'Ask ScriptureSmart'}
           </button>
         )}
       </div>

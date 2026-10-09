@@ -145,6 +145,25 @@ test('study chat gathers selected translation and sourced open research', async 
   });
 
   await page.goto('/#study');
+  const mobileOpenChat = page.getByRole('button', { name: 'Open chat' });
+  if (await mobileOpenChat.isVisible()) {
+    await mobileOpenChat.click();
+    await expect(page.locator('.ai-assistant')).toHaveClass(/mobile-chat-open/);
+    await expect(
+      page.getByRole('textbox', { name: 'Study question' }),
+    ).toBeVisible();
+    const chatBounds = await page
+      .locator('.ai-assistant.mobile-chat-open')
+      .evaluate((node) => {
+        const bounds = node.getBoundingClientRect();
+        return { left: bounds.left, right: bounds.right, width: bounds.width };
+      });
+    expect(chatBounds.left).toBe(0);
+    const viewportWidth = page.viewportSize()?.width ?? 0;
+    expect(chatBounds.width).toBeGreaterThanOrEqual(viewportWidth - 1);
+    expect(chatBounds.right).toBeGreaterThanOrEqual(viewportWidth - 1);
+    await page.getByRole('button', { name: 'Close chat' }).click();
+  }
   await expect(page.locator('.scripture-text')).toContainText(
     'He predestined us to adoption as sons and daughters.',
   );
@@ -162,6 +181,7 @@ test('study chat gathers selected translation and sourced open research', async 
   );
   await page.locator('#maps-timelines summary').click();
   await expect(page.locator('#maps-timelines')).toContainText('Ephesus');
+  if (await mobileOpenChat.isVisible()) await mobileOpenChat.click();
   const prompt =
     'Compare adoption in Ephesians 1 with other areas Paul discussed adoption. Is adoption predetermined?';
   await page.getByRole('textbox', { name: 'Study question' }).fill(prompt);

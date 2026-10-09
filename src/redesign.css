@@ -2277,12 +2277,83 @@ main#main-content {
     max-height: none;
     min-height: 0;
     overflow: visible;
+    padding: 14px 12px;
+  }
+  .study-desk-layout > .ai-assistant > .section-heading {
+    margin-bottom: 10px;
+  }
+  .study-desk-layout > .ai-assistant > .section-heading h2 {
+    font-size: 21px;
   }
   .study-desk-layout > .ai-assistant > .ai-chat {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    gap: 10px;
     overflow: visible;
   }
   .study-desk-layout > .ai-assistant > .ai-chat > .ai-chat-thread {
-    overflow: visible;
+    display: grid;
+    max-height: min(52dvh, 420px);
+    gap: 10px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    padding: 0 2px 2px 0;
+  }
+  .study-desk-layout > .ai-assistant .ai-chat-history-list {
+    max-height: 130px;
+  }
+  .study-desk-layout > .ai-assistant .ai-chat-empty {
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+  }
+  .study-desk-layout > .ai-assistant .ai-chat-empty .button {
+    min-height: 44px;
+    padding: 8px;
+    font-size: 11px;
+  }
+  .study-desk-layout > .ai-assistant .ai-chat-turn {
+    gap: 7px;
+  }
+  .study-desk-layout > .ai-assistant .ai-chat-message {
+    max-width: 100%;
+    padding: 11px 12px;
+    font-size: 13px;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+  .study-desk-layout > .ai-assistant .ai-chat-composer {
+    position: sticky;
+    z-index: 2;
+    bottom: 6px;
+    gap: 8px;
+    margin-top: 0;
+    padding: 9px;
+    box-shadow: 0 4px 14px rgba(45, 48, 35, 0.12);
+  }
+  .study-desk-layout > .ai-assistant .ai-chat-composer textarea {
+    min-height: 92px;
+    max-height: 180px;
+    resize: vertical;
+    padding: 11px 12px;
+    font-size: 16px;
+    line-height: 1.45;
+  }
+  .study-desk-layout > .ai-assistant .ai-chat-composer .editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .study-desk-layout > .ai-assistant .ai-chat-composer .button {
+    min-width: 78px;
+    min-height: 44px;
+    justify-content: center;
+    font-size: 13px;
+  }
+  .study-desk-layout > .ai-assistant .ai-chat-composer small {
+    font-size: 11px;
+    line-height: 1.45;
   }
   .study-tool-rail {
     order: 3;

@@ -13,6 +13,7 @@ import { aiService } from './client';
 import { reportApiBibleViews } from './fums';
 import { Badge } from '../components';
 import './ai.css';
+import type { StudyChat } from '../domain/models';
 
 export interface ContextChoice {
   id: string;
@@ -33,6 +34,10 @@ export function AssistantPanel({
   onReplace,
   onInsertGuide,
   fumsUserId,
+  studyChats = [],
+  onSaveStudyChat,
+  onSendStudyToSermon,
+  onOpenStudyChat,
 }: {
   taskType?: AITaskType;
   allowScripture?: boolean;
@@ -46,6 +51,10 @@ export function AssistantPanel({
   onReplace?: (text: string) => void;
   onInsertGuide?: (sections: NonNullable<AIResponse['sections']>) => void;
   fumsUserId?: string;
+  studyChats?: StudyChat[];
+  onSaveStudyChat?: (chat: StudyChat) => void;
+  onSendStudyToSermon?: (chat: StudyChat) => void;
+  onOpenStudyChat?: (chat: StudyChat) => void;
 }) {
   const chatMode = allowScripture;
   const [open, setOpen] = useState(chatMode);
@@ -63,6 +72,7 @@ export function AssistantPanel({
   const [response, setResponse] = useState<AIResponse | null>(null);
   const [edited, setEdited] = useState('');
   const [conversation, setConversation] = useState<AIExchange[]>([]);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [followUp, setFollowUp] = useState('');
   const [editedSections, setEditedSections] =
     useState<AIResponse['sections']>();
@@ -91,8 +101,18 @@ export function AssistantPanel({
     setNotice('Request cancelled. Your document is unchanged.');
   }
 
+  const activeSavedChat = studyChats.find((chat) => chat.id === activeChatId);
+
   function selectedContext() {
-    const context: AIContext = { ...baseContext };
+    const context: AIContext = {
+      ...baseContext,
+      ...(activeSavedChat?.passageReference
+        ? { passageReference: activeSavedChat.passageReference }
+        : {}),
+      ...(activeSavedChat?.translationIds.length
+        ? { translationIds: activeSavedChat.translationIds }
+        : {}),
+    };
     const activeChoices = chatMode
       ? choices
       : choices.filter((c) => selected.includes(c.id));
@@ -112,7 +132,10 @@ export function AssistantPanel({
           .map((r) => normalizeReference(r))
           .filter((r): r is string => !!r);
       }
-      return suggestedReferences(question, baseContext.passageReference);
+      return suggestedReferences(
+        question,
+        activeSavedChat?.passageReference ?? baseContext.passageReference,
+      );
     }
     return referenceText
       .split(';')
@@ -177,11 +200,28 @@ export function AssistantPanel({
         abort.signal,
       );
       if (generation !== operation.current) return;
-      setConversation(
-        isFollowUp
-          ? [...reviewedConversation, { question, answer: result.text }]
-          : [{ question, answer: result.text }],
-      );
+      const nextConversation = isFollowUp
+        ? [...reviewedConversation, { question, answer: result.text }]
+        : [{ question, answer: result.text }];
+      setConversation(nextConversation);
+      if (chatMode) {
+        const chatId = activeChatId ?? crypto.randomUUID();
+        setActiveChatId(chatId);
+        onSaveStudyChat?.({
+          id: chatId,
+          title:
+            activeSavedChat?.title ??
+            nextConversation[0].question.slice(0, 100),
+          passageReference:
+            activeSavedChat?.passageReference ??
+            baseContext.passageReference ??
+            '',
+          translationIds:
+            activeSavedChat?.translationIds ?? baseContext.translationIds ?? [],
+          exchanges: nextConversation,
+          updatedAt: new Date().toISOString(),
+        });
+      }
       if (includeScripture) setCustomReferences(references.join('; '));
       setFollowUp('');
       if (chatMode) setPrompt('');
@@ -218,6 +258,7 @@ export function AssistantPanel({
   function startNewConversation() {
     cancel();
     setConversation([]);
+    setActiveChatId(null);
     setResponse(null);
     setEdited('');
     setFollowUp('');
@@ -228,6 +269,36 @@ export function AssistantPanel({
     setSelected([]);
     setPrompt('');
   }
+
+  function openSavedChat(chat: StudyChat) {
+    setActiveChatId(chat.id);
+    setConversation(chat.exchanges);
+    setResponse(null);
+    setEdited(chat.exchanges.at(-1)?.answer ?? '');
+    setFollowUp('');
+    setPrompt('');
+    setError('');
+    setNeedsSignIn(false);
+    setNotice('Opened saved conversation. Follow-ups will continue this chat.');
+    onOpenStudyChat?.(chat);
+  }
+
+  const chatForSermon: StudyChat | undefined = conversation.length
+    ? {
+        id: activeChatId ?? '',
+        title:
+          studyChats.find((chat) => chat.id === activeChatId)?.title ??
+          conversation[0].question.slice(0, 100),
+        passageReference:
+          activeSavedChat?.passageReference ??
+          baseContext.passageReference ??
+          '',
+        translationIds:
+          activeSavedChat?.translationIds ?? baseContext.translationIds ?? [],
+        exchanges: conversation,
+        updatedAt: activeSavedChat?.updatedAt ?? '',
+      }
+    : undefined;
 
   const textToInsert = editedSections
     ? guideSections.map((k) => `${k}\n${editedSections[k]}`).join('\n\n')
@@ -247,7 +318,9 @@ export function AssistantPanel({
         </p>
         {response.scriptureSources.map((source) => (
           <details key={source.reference}>
-            <summary>{source.reference} ({source.translation})</summary>
+            <summary>
+              {source.reference} ({source.translation})
+            </summary>
             <p className="preserve">{source.text}</p>
             <a href={source.url} target="_blank" rel="noopener noreferrer">
               View passage source
@@ -270,7 +343,11 @@ export function AssistantPanel({
         aria-label="Bible research sources"
       >
         <h3>Passage research · {research.reference}</h3>
-        <p className="muted">The selected Bible wording is shown above. ScriptureSmart AI explains it in present-day English below; that explanation is AI synthesis, not a replacement Bible translation.</p>
+        <p className="muted">
+          The selected Bible wording is shown above. ScriptureSmart AI explains
+          it in present-day English below; that explanation is AI synthesis, not
+          a replacement Bible translation.
+        </p>
         {selected ? (
           <details>
             <summary>
@@ -346,29 +423,36 @@ export function AssistantPanel({
           </summary>
           {research.originalLanguage.words.length ? (
             <>
-              <p className="muted">The open dataset provides English-word anchors, Strong’s numbers, lemmas, or morphology where available. It does not provide original-script forms or direct glosses here, so those will not be guessed.</p>
+              <p className="muted">
+                The open dataset provides English-word anchors, Strong’s
+                numbers, lemmas, or morphology where available. It does not
+                provide original-script forms or direct glosses here, so those
+                will not be guessed.
+              </p>
               <ul>
-              {research.originalLanguage.words.map((word, i) => (
-                <li key={`${word.verse}-${i}`}>
-                  {word.text ? (
-                    <button
-                      type="button"
-                      className="text-button"
-                      onClick={() => setSelectedWord(i)}
-                    >
-                      {word.text}
-                    </button>
-                  ) : (
-                    `Verse ${word.verse}`
-                  )}
-                  {word.lemma ? ` · lemma: ${word.lemma}` : ''}
-                  {word.strongs?.length ? ` · ${word.strongs.join(', ')}` : ''}
-                  {word.morph ? ` · morphology: ${word.morph}` : ''}
-                  {word.occurrences
-                    ? ` · occurrences: ${word.occurrences}`
-                    : ''}
-                </li>
-              ))}
+                {research.originalLanguage.words.map((word, i) => (
+                  <li key={`${word.verse}-${i}`}>
+                    {word.text ? (
+                      <button
+                        type="button"
+                        className="text-button"
+                        onClick={() => setSelectedWord(i)}
+                      >
+                        {word.text}
+                      </button>
+                    ) : (
+                      `Verse ${word.verse}`
+                    )}
+                    {word.lemma ? ` · lemma: ${word.lemma}` : ''}
+                    {word.strongs?.length
+                      ? ` · ${word.strongs.join(', ')}`
+                      : ''}
+                    {word.morph ? ` · morphology: ${word.morph}` : ''}
+                    {word.occurrences
+                      ? ` · occurrences: ${word.occurrences}`
+                      : ''}
+                  </li>
+                ))}
               </ul>
             </>
           ) : (
@@ -459,7 +543,12 @@ export function AssistantPanel({
         <div>
           <Badge>Built-in assistant</Badge>
           <h2>{chatMode ? 'Ask ScriptureSmart' : 'ScriptureSmart AI'}</h2>
-          {chatMode && <p>Your AI study assistant for deeper understanding.</p>}
+          {chatMode && (
+            <p>
+              Ask follow-up questions. Recent conversations stay in this browser
+              and do not sync to other devices.
+            </p>
+          )}
         </div>
         {!chatMode && (
           <button
@@ -478,6 +567,27 @@ export function AssistantPanel({
         <div className={chatMode ? 'ai-chat' : 'form-stack'}>
           {chatMode ? (
             <>
+              {studyChats.length > 0 && (
+                <details className="ai-chat-history">
+                  <summary>Chat history ({studyChats.length})</summary>
+                  <div className="ai-chat-history-list">
+                    {studyChats.map((chat) => (
+                      <button
+                        className="button secondary"
+                        key={chat.id}
+                        aria-current={
+                          activeChatId === chat.id ? 'true' : undefined
+                        }
+                        disabled={busy}
+                        onClick={() => openSavedChat(chat)}
+                      >
+                        <strong>{chat.title}</strong>
+                        <span>{chat.passageReference || 'General study'}</span>
+                      </button>
+                    ))}
+                  </div>
+                </details>
+              )}
               {conversation.length === 0 && (
                 <div className="ai-chat-empty">
                   {suggestions.slice(0, 4).map((s) => (
@@ -652,7 +762,7 @@ export function AssistantPanel({
           )}
           {notice && <p role="status">{notice}</p>}
 
-          {response && (
+          {(response || (chatMode && conversation.length > 0)) && (
             <section
               className={chatMode ? 'ai-chat-thread' : 'ai-result form-stack'}
               aria-label={chatMode ? 'Study chat' : 'AI draft review'}
@@ -694,7 +804,7 @@ export function AssistantPanel({
                 </>
               )}
 
-              {response.warnings?.map((w, i) => (
+              {response?.warnings?.map((w, i) => (
                 <p className="muted" key={i}>
                   {w}
                 </p>
@@ -763,6 +873,17 @@ export function AssistantPanel({
                     }}
                   >
                     {chatMode ? 'Save answer to notes' : insertLabel}
+                  </button>
+                )}
+                {chatMode && onSendStudyToSermon && chatForSermon && (
+                  <button
+                    className="button secondary"
+                    onClick={() => {
+                      onSendStudyToSermon(chatForSermon);
+                      setNotice('Study conversation sent to Sermon Build.');
+                    }}
+                  >
+                    Send to Sermon Build
                   </button>
                 )}
                 {onReplace && (
@@ -848,16 +969,18 @@ export function AssistantPanel({
                 </section>
               )}
 
-              <details>
-                <summary>Advanced response information</summary>
-                <p>
-                  Provider: {response.provider}
-                  <br />
-                  Model: {response.model}
-                  <br />
-                  Generated: {response.createdAt}
-                </p>
-              </details>
+              {response && (
+                <details>
+                  <summary>Advanced response information</summary>
+                  <p>
+                    Provider: {response.provider}
+                    <br />
+                    Model: {response.model}
+                    <br />
+                    Generated: {response.createdAt}
+                  </p>
+                </details>
+              )}
             </section>
           )}
 

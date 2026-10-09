@@ -158,4 +158,35 @@ test('study chat gathers selected translation and sourced open research', async 
   expect(positions.resourcesTop).toBeGreaterThanOrEqual(
     positions.assistantBottom,
   );
+
+  await page.reload();
+  await page.getByText('Chat history (1)', { exact: true }).click();
+  await page
+    .getByRole('button', { name: /Compare adoption in Ephesians 1/ })
+    .click();
+  await expect(
+    page.getByText('Paul describes adoption as a purpose'),
+  ).toBeVisible();
+  await page
+    .getByRole('textbox', { name: 'Study question' })
+    .fill('How does that connect to grace?');
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(
+    page.getByText('Paul describes adoption as a purpose'),
+  ).toHaveCount(2);
+  expect(requestBody?.conversation).toEqual([
+    {
+      question: prompt,
+      answer: 'Paul describes adoption as a purpose of God’s saving work.',
+    },
+  ]);
+  await page.getByRole('button', { name: 'Send to Sermon Build' }).click();
+  await expect(page).toHaveURL(/#sermons$/);
+  await page.getByRole('button', { name: /Observations/ }).click();
+  await expect(page.getByLabel('Observations')).toContainText(
+    'Question 1: Compare adoption in Ephesians 1',
+  );
+  await expect(page.getByLabel('Observations')).toContainText(
+    'Question 2: How does that connect to grace?',
+  );
 });

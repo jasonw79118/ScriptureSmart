@@ -1,6 +1,6 @@
 import { AssistantPanel, type ContextChoice } from '../ai/AssistantPanel';
 import { useEffect, useRef, useState } from 'react';
-import type { Note, TableItem } from '../domain/models';
+import type { Note, StudyChat, TableItem } from '../domain/models';
 import {
   defaultComparisonTranslationId,
   defaultTranslationId,
@@ -24,6 +24,10 @@ export function PassageWorkspace({
   connect,
   initialQuestion = '',
   fumsUserId,
+  studyChats,
+  saveStudyChat,
+  sendStudyToSermon,
+  openStudyChat,
 }: {
   passage: string;
   setPassage: (p: string) => void;
@@ -36,6 +40,10 @@ export function PassageWorkspace({
   connect: () => void;
   initialQuestion?: string;
   fumsUserId?: string;
+  studyChats: StudyChat[];
+  saveStudyChat: (chat: StudyChat) => void;
+  sendStudyToSermon: (chat: StudyChat) => void;
+  openStudyChat: (chat: StudyChat) => void;
 }) {
   const availableTranslations = translations.filter((item) =>
     availableTranslationIds.includes(item.id),
@@ -49,7 +57,8 @@ export function PassageWorkspace({
     ) ??
     availableTranslationIds.find((id) => id !== initialTranslation) ??
     defaultComparisonTranslationId;
-  const [input, setInput] = useState(passage);
+  const [inputState, setInputState] = useState({ passage, value: passage });
+  const input = inputState.passage === passage ? inputState.value : passage;
   const [tab, setTab] = useState('Scripture');
   const [note, setNote] = useState('');
   const [translation, setTranslation] = useState(initialTranslation);
@@ -161,14 +170,7 @@ export function PassageWorkspace({
         if (inFlight.get(key) === controller) inFlight.delete(key);
       });
     };
-  }, [
-    tab,
-    passage,
-    translation,
-    comparison,
-    fumsUserId,
-    passageRetry,
-  ]);
+  }, [tab, passage, translation, comparison, fumsUserId, passageRetry]);
 
   const renderText = (id: string) => {
     const key = `${id}:${passage}`;
@@ -188,7 +190,7 @@ export function PassageWorkspace({
             <button
               className="text-button"
               onClick={() => {
-                setPassageErrors((current) => ({ ...current, [key]: '' }))
+                setPassageErrors((current) => ({ ...current, [key]: '' }));
                 setPassageRetry((retry) => retry + 1);
               }}
             >
@@ -222,7 +224,9 @@ export function PassageWorkspace({
         <div className="scripture-attribution">
           <span>{result.attribution}</span>
           <a href={result.sourceUrl} target="_blank" rel="noopener noreferrer">
-            {result.translationId === 'KJV' || result.translationId === 'WEB' ? 'Open public-domain source ↗' : 'Open API.Bible ↗'}
+            {result.translationId === 'KJV' || result.translationId === 'WEB'
+              ? 'Open public-domain source ↗'
+              : 'Open API.Bible ↗'}
           </a>
         </div>
         {result.rights && (
@@ -379,7 +383,9 @@ export function PassageWorkspace({
             <input
               id="passage"
               value={input}
-              onChange={(event) => setInput(event.target.value)}
+              onChange={(event) =>
+                setInputState({ passage, value: event.target.value })
+              }
               placeholder="Search or open a Bible passage…"
               required
             />
@@ -395,7 +401,11 @@ export function PassageWorkspace({
 
           <article className="scripture-paper">
             <div className="scripture-breadcrumb">
-              <button onClick={() => setInput(passage)}>‹</button>
+              <button
+                onClick={() => setInputState({ passage, value: passage })}
+              >
+                ‹
+              </button>
               <span>Scripture</span>
               <span>›</span>
               <strong>{passage}</strong>
@@ -406,7 +416,10 @@ export function PassageWorkspace({
             <div className="scripture-title">
               <span className="eyebrow">SCRIPTURE</span>
               <h2>{passage.split(':')[0]}</h2>
-              <p>Start with the King James Version, then switch to the World English Bible for a modern-English reading.</p>
+              <p>
+                Start with the King James Version, then switch to the World
+                English Bible for a modern-English reading.
+              </p>
             </div>
             <div
               className="translation-choices"
@@ -708,7 +721,10 @@ export function PassageWorkspace({
         <AssistantPanel
           allowScripture
           fumsUserId={fumsUserId}
-          key={`${passage}:${translation}:${comparison}`}
+          studyChats={studyChats}
+          onSaveStudyChat={saveStudyChat}
+          onSendStudyToSermon={sendStudyToSermon}
+          onOpenStudyChat={openStudyChat}
           baseContext={{
             passageReference: passage,
             translationIds: [translation, comparison],

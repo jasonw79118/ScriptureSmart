@@ -97,6 +97,14 @@ export interface Note {
   visibility: 'private' | 'group';
   ownerId: string;
 }
+export interface StudyChat {
+  id: string;
+  title: string;
+  passageReference: string;
+  translationIds: string[];
+  exchanges: { question: string; answer: string }[];
+  updatedAt: string;
+}
 export type DocumentKind = 'sermon' | 'study' | 'guide';
 export interface Draft {
   id: string;

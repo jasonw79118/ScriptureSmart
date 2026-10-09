@@ -27,6 +27,27 @@ export const validNotes = (v: unknown): v is Note[] =>
       text(n.ownerId) &&
       ['private', 'group'].includes(String(n.visibility)),
   );
+export const validStudyChats = (
+  v: unknown,
+): v is import('../domain/models').StudyChat[] =>
+  Array.isArray(v) &&
+  v.length <= 40 &&
+  v.every(
+    (chat) =>
+      object(chat) &&
+      text(chat.id) &&
+      text(chat.title) &&
+      text(chat.passageReference) &&
+      Array.isArray(chat.translationIds) &&
+      chat.translationIds.every(text) &&
+      Array.isArray(chat.exchanges) &&
+      chat.exchanges.length <= 100 &&
+      chat.exchanges.every(
+        (exchange) =>
+          object(exchange) && text(exchange.question) && text(exchange.answer),
+      ) &&
+      text(chat.updatedAt),
+  );
 export const validTable = (v: unknown): v is TableItem[] =>
   Array.isArray(v) &&
   v.every(

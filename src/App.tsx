@@ -5,6 +5,7 @@ import type {
   Note,
   TableItem,
   Preferences,
+  StudyChat,
 } from './domain/models';
 import { sampleDrafts, sampleTable } from './data/seed';
 import { useLocalStore } from './data/storage';
@@ -31,6 +32,7 @@ import { ChurchImage } from './community/ChurchBrand';
 import {
   validDrafts,
   validNotes,
+  validStudyChats,
   validTable,
   validPreferences,
 } from './data/validation';
@@ -217,6 +219,9 @@ function App() {
     [],
     validNotes,
   );
+  const [studyChats, saveStudyChats, studyChatsError] = useLocalStore<
+    StudyChat[]
+  >('ss.study-chats.v1', [], validStudyChats);
   const [table, saveTable, tableError] = useLocalStore<TableItem[]>(
     'ss.table.v1',
     sampleTable,
@@ -326,6 +331,42 @@ function App() {
     saveDrafts([draft, ...drafts]);
     openDraft(draft);
   }
+  function saveStudyChat(chat: StudyChat) {
+    const bounded = { ...chat, exchanges: chat.exchanges.slice(-100) };
+    saveStudyChats(
+      [bounded, ...studyChats.filter((item) => item.id !== chat.id)]
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+        .slice(0, 40),
+    );
+  }
+  function sendStudyToSermon(chat: StudyChat) {
+    if (!allowed('sermons')) {
+      setNotice('Your church administrator has not enabled Sermon Build.');
+      return;
+    }
+    const transcript = chat.exchanges
+      .map(
+        ({ question, answer }, index) =>
+          `Question ${index + 1}: ${question}\n\nScriptureSmart AI synthesis:\n${answer}`,
+      )
+      .join('\n\n---\n\n');
+    const draft: Draft = {
+      id: crypto.randomUUID(),
+      kind: 'sermon',
+      title: `Study: ${chat.title}`.slice(0, 120),
+      passage: chat.passageReference,
+      sections: {
+        'Additional passages': `Translations discussed: ${chat.translationIds.join(', ') || 'Not specified'}`,
+        Observations: `Saved ScriptureSmart study conversation. Review and develop these notes before preaching.\n\n${transcript}`,
+      },
+      updatedAt: timestamp(),
+      aiAssisted: true,
+    };
+    saveDrafts([draft, ...drafts]);
+    setSelectedId(draft.id);
+    setNotice('Study conversation sent to Sermon Build. Review it before use.');
+    go('sermons');
+  }
   function sendToTable(text: string, kind: TableItem['kind'] = 'note') {
     saveTable([
       {
@@ -361,7 +402,8 @@ function App() {
   const onboarding =
     community.needsChurch &&
     !['church', 'member-login', 'onboarding'].includes(route);
-  const error = draftError || noteError || tableError || settingsError;
+  const error =
+    draftError || noteError || studyChatsError || tableError || settingsError;
   function draftCards(items: Draft[]): ReactNode {
     return (
       <div className="document-grid">
@@ -830,7 +872,6 @@ function App() {
               )}
               {route === 'study' && (
                 <PassageWorkspace
-                  key={passage}
                   passage={passage}
                   setPassage={setPassage}
                   preferred={preferredTranslation}
@@ -844,6 +885,14 @@ function App() {
                   connect={() => go('connections')}
                   initialQuestion={studyQuestion}
                   fumsUserId={community.userId}
+                  studyChats={studyChats}
+                  saveStudyChat={saveStudyChat}
+                  sendStudyToSermon={sendStudyToSermon}
+                  openStudyChat={(chat) => {
+                    if (chat.passageReference)
+                      setPassage(chat.passageReference);
+                    setStudyQuestion('');
+                  }}
                 />
               )}
               {(['sermons', 'bible-studies', 'guide'] as Route[]).includes(

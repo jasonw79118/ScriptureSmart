@@ -1,4 +1,25 @@
 import { test, expect } from '@playwright/test';
+test('mobile home hero keeps the heading and Ask box full width', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'mobile');
+  await page.goto('/#dashboard');
+  const widths = await page.evaluate(() => {
+    const hero = document.querySelector('.home-study-hero')!;
+    const copy = document.querySelector('.home-hero-copy')!;
+    const form = document.querySelector('.home-ask-form')!;
+    return {
+      viewport: window.innerWidth,
+      copy: copy.getBoundingClientRect().width,
+      form: form.getBoundingClientRect().width,
+      gridColumns: getComputedStyle(hero).gridTemplateColumns,
+    };
+  });
+  expect(widths.copy).toBeGreaterThan(widths.viewport * 0.8);
+  expect(widths.form).toBeGreaterThan(widths.viewport * 0.8);
+  expect(widths.gridColumns.trim().split(/\s+/)).toHaveLength(1);
+});
+
 test('all routes render without overflow or runtime errors', async ({
   page,
 }, info) => {
@@ -31,6 +52,21 @@ test('all routes render without overflow or runtime errors', async ({
     fullPage: true,
   });
   if (info.project.name === 'mobile') {
+    const homeWidths = await page.evaluate(() => {
+      const hero = document.querySelector('.home-study-hero')!;
+      const copy = document.querySelector('.home-hero-copy')!;
+      const form = document.querySelector('.home-ask-form')!;
+      return {
+        viewport: window.innerWidth,
+        hero: hero.getBoundingClientRect().width,
+        copy: copy.getBoundingClientRect().width,
+        form: form.getBoundingClientRect().width,
+        gridColumns: getComputedStyle(hero).gridTemplateColumns,
+      };
+    });
+    expect(homeWidths.copy).toBeGreaterThan(homeWidths.viewport * 0.8);
+    expect(homeWidths.form).toBeGreaterThan(homeWidths.viewport * 0.8);
+    expect(homeWidths.gridColumns.trim().split(/\s+/)).toHaveLength(1);
     await page.getByRole('button', { name: 'Open navigation' }).click();
     await page
       .getByRole('navigation')
@@ -40,23 +76,22 @@ test('all routes render without overflow or runtime errors', async ({
   }
   expect(errors).toEqual([]);
 });
-test(
-  'library includes the Berean Study Bible resource with source attribution',
-  async ({ page }) => {
-    await page.goto('/#research');
-    await page.getByRole('button', { name: 'Modern Voices' }).click();
-    const resource = page.getByRole('link', {
-      name: /About the Berean Study Bible/,
-    });
-    await expect(resource).toHaveAttribute(
-      'href',
-      'https://bereanbibles.com/about-berean-study-bible/',
-    );
-    await expect(resource).toContainText(
-      'public reading, study, memorization, and evangelism',
-    );
-  },
-);
+test('library includes the Berean Study Bible resource with source attribution', async ({
+  page,
+}) => {
+  await page.goto('/#research');
+  await page.getByRole('button', { name: 'Modern Voices' }).click();
+  const resource = page.getByRole('link', {
+    name: /About the Berean Study Bible/,
+  });
+  await expect(resource).toHaveAttribute(
+    'href',
+    'https://bereanbibles.com/about-berean-study-bible/',
+  );
+  await expect(resource).toContainText(
+    'public reading, study, memorization, and evangelism',
+  );
+});
 test('draft editing, reload, search and text export', async ({ page }) => {
   await page.goto('/#sermons');
   await page.getByRole('button', { name: 'New sermon' }).click();

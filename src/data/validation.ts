@@ -1,5 +1,6 @@
 ﻿import type { Draft, Note, TableItem } from '../domain/models';
 import type { Preferences } from '../domain/models';
+import type { SermonNotesEntry } from '../domain/models';
 const object = (v: unknown): v is Record<string, unknown> =>
   !!v && typeof v === 'object' && !Array.isArray(v);
 const text = (v: unknown): v is string => typeof v === 'string';
@@ -26,6 +27,24 @@ export const validNotes = (v: unknown): v is Note[] =>
       text(n.text) &&
       text(n.ownerId) &&
       ['private', 'group'].includes(String(n.visibility)),
+  );
+export const validSermonNotes = (v: unknown): v is SermonNotesEntry[] =>
+  Array.isArray(v) &&
+  v.length <= 1000 &&
+  v.every(
+    (entry) =>
+      object(entry) &&
+      text(entry.id) &&
+      text(entry.date) &&
+      text(entry.speaker) &&
+      text(entry.title) &&
+      text(entry.passage) &&
+      text(entry.keyVerse) &&
+      text(entry.mainIdea) &&
+      text(entry.notes) &&
+      text(entry.application) &&
+      text(entry.questions) &&
+      text(entry.updatedAt),
   );
 export const validStudyChats = (
   v: unknown,

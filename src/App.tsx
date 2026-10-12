@@ -5,6 +5,7 @@ import type {
   Note,
   TableItem,
   Preferences,
+  SermonNotesEntry,
   StudyChat,
 } from './domain/models';
 import { sampleDrafts, sampleTable } from './data/seed';
@@ -16,6 +17,7 @@ import {
   Library,
   Connections,
   Settings,
+  SermonNotes,
 } from './Screens';
 import './App.css';
 import './community/community.css';
@@ -35,6 +37,7 @@ import {
   validStudyChats,
   validTable,
   validPreferences,
+  validSermonNotes,
 } from './data/validation';
 import { navigate, timestamp } from './utils';
 import {
@@ -47,6 +50,7 @@ export type Route =
   | 'find-group'
   | 'dashboard'
   | 'study'
+  | 'sermon-notes'
   | 'sermons'
   | 'bible-studies'
   | 'guide'
@@ -61,6 +65,7 @@ export type Route =
 const nav: { id: Route; label: string; icon: string }[] = [
   { id: 'dashboard', label: 'Home', icon: 'Home' },
   { id: 'study', label: 'Study', icon: 'Book' },
+  { id: 'sermon-notes', label: 'Sermon Notes', icon: 'Write' },
   { id: 'research', label: 'Explore', icon: 'Search' },
   { id: 'sermons', label: 'Create', icon: 'Write' },
   { id: 'groups', label: 'Groups', icon: 'Group' },
@@ -222,6 +227,9 @@ function App() {
   const [studyChats, saveStudyChats, studyChatsError] = useLocalStore<
     StudyChat[]
   >('ss.study-chats.v1', [], validStudyChats);
+  const [sermonNotes, saveSermonNotes, sermonNotesError] = useLocalStore<
+    SermonNotesEntry[]
+  >('ss.sermon-notes.v1', [], validSermonNotes);
   const [table, saveTable, tableError] = useLocalStore<TableItem[]>(
     'ss.table.v1',
     sampleTable,
@@ -269,6 +277,7 @@ function App() {
     ? settings.translation
     : defaultTranslationId;
   const [selectedId, setSelectedId] = useState('');
+  const [selectedSermonNotesId, setSelectedSermonNotesId] = useState('');
   const [passage, setPassage] = useState('Ephesians 1:3–14');
   const [notice, setNotice] = useState('');
   const [homeQuery, setHomeQuery] = useState('');
@@ -385,7 +394,13 @@ function App() {
   function allowed(r: Route) {
     if (!community.configured) return true;
     const key =
-      r === 'find-group' ? 'groups' : r === 'table' ? 'discussion' : r;
+      r === 'find-group'
+        ? 'groups'
+        : r === 'table'
+          ? 'discussion'
+          : r === 'sermon-notes'
+            ? 'sermons'
+            : r;
     return (
       ![
         'study',
@@ -403,7 +418,12 @@ function App() {
     community.needsChurch &&
     !['church', 'member-login', 'onboarding'].includes(route);
   const error =
-    draftError || noteError || studyChatsError || tableError || settingsError;
+    draftError ||
+    noteError ||
+    studyChatsError ||
+    sermonNotesError ||
+    tableError ||
+    settingsError;
   function draftCards(items: Draft[]): ReactNode {
     return (
       <div className="document-grid">
@@ -895,6 +915,18 @@ function App() {
                   }}
                 />
               )}
+              {route === 'sermon-notes' && (
+                <SermonNotes
+                  entries={sermonNotes}
+                  save={saveSermonNotes}
+                  selectedId={selectedSermonNotesId}
+                  select={setSelectedSermonNotesId}
+                  openStudy={(reference) => {
+                    setPassage(reference);
+                    go('study');
+                  }}
+                />
+              )}
               {(['sermons', 'bible-studies', 'guide'] as Route[]).includes(
                 route,
               ) && (
@@ -945,6 +977,7 @@ function App() {
                     version: 1,
                     drafts,
                     notes,
+                    sermonNotes,
                     table,
                     settings,
                     community: community.data,

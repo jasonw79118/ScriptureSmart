@@ -105,6 +105,19 @@ export interface StudyChat {
   exchanges: { question: string; answer: string }[];
   updatedAt: string;
 }
+export interface SermonNotesEntry {
+  id: string;
+  date: string;
+  speaker: string;
+  title: string;
+  passage: string;
+  keyVerse: string;
+  mainIdea: string;
+  notes: string;
+  application: string;
+  questions: string;
+  updatedAt: string;
+}
 export type DocumentKind = 'sermon' | 'study' | 'guide';
 export interface Draft {
   id: string;

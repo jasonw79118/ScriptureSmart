@@ -28,6 +28,7 @@ test('all routes render without overflow or runtime errors', async ({
   for (const route of [
     'dashboard',
     'study',
+    'sermon-notes',
     'sermons',
     'bible-studies',
     'guide',
@@ -116,6 +117,35 @@ test('draft editing, reload, search and text export', async ({ page }) => {
     page.getByRole('button', { name: /Grace in daily life/ }),
   ).toBeVisible();
   await expect(page.getByRole('heading', { name: '1 results' })).toBeVisible();
+});
+test('Sunday sermon notes save locally and open the passage for study', async ({
+  page,
+}) => {
+  await page.goto('/#sermon-notes');
+  await expect(page.locator('h1')).toHaveText('Sunday Sermon Notes');
+  await page.getByRole('button', { name: 'Start Sunday notes' }).click();
+  await page.getByLabel('Pastor or speaker').fill('Pastor Jordan');
+  await page.getByLabel('Message title').fill('Grace for the weary');
+  await page.getByLabel('Main Scripture').fill('Matthew 11:28-30');
+  await page.getByLabel('Key verse').fill('Matthew 11:28');
+  await page
+    .getByLabel('Main idea')
+    .fill('Jesus invites the weary to find rest in him.');
+  await page
+    .getByLabel('Notes from the message')
+    .fill('The invitation includes those carrying heavy burdens.');
+  await page.reload();
+  await expect(page.getByLabel('Pastor or speaker')).toHaveValue(
+    'Pastor Jordan',
+  );
+  await expect(page.getByLabel('Notes from the message')).toContainText(
+    'heavy burdens',
+  );
+  await page.getByRole('button', { name: 'Study Matthew 11:28-30' }).click();
+  await expect(page).toHaveURL(/#study$/);
+  await expect(page.getByLabel('Bible reference')).toHaveValue(
+    'Matthew 11:28-30',
+  );
 });
 test('passage notes and Table contributions persist', async ({ page }) => {
   await page.goto('/#study');

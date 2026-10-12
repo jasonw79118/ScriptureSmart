@@ -4,3 +4,4 @@ export { TableWorkspace } from './screens/TableWorkspace';
 export { Library } from './screens/Library';
 export { Connections } from './screens/Connections';
 export { Settings } from './screens/Settings';
+export { SermonNotes } from './screens/SermonNotes';
